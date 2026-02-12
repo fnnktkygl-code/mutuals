@@ -8,20 +8,40 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
     <link rel="icon" type="image/png" href="assets/img/icon.png">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://fnnktkygl-code.github.io/mutuals/">
+    <meta property="og:title" content="Mutuals - Votre cercle, connecté">
+    <meta property="og:description"
+        content="L'application pour organiser votre famille et vos proches. Anniversaires, tailles, listes de souhaits, le tout dans un espace privé.">
+    <meta property="og:image" content="assets/img/icon.png">
 </head>
 
 <body>
 
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
     <!-- Navigation -->
     <nav class="navbar">
-        <div class="container">
+        <div class="container nav-container">
             <div class="logo">
                 <img src="assets/img/icon.png" alt="Mutuals Logo">
                 <span>Mutuals</span>
             </div>
-            <a href="downloads/famille-app-release.apk" class="btn btn-primary">Télécharger l'App</a>
+            <div class="nav-links">
+                <a href="#features">Fonctionnalités</a>
+                <a href="#how-it-works">Comment ça marche</a>
+                <a href="#faq">FAQ</a>
+            </div>
+            <a href="downloads/famille-app-release.apk" class="btn btn-primary glow-effect">Télécharger l'App</a>
         </div>
     </nav>
 
@@ -29,9 +49,10 @@
     <header class="hero">
         <div class="container hero-content">
             <div class="hero-text">
-                <h1>Vos proches, <br> <span class="highlight">simplement.</span></h1>
-                <p>Mutuals : Partagez vos moments, organisez vos cercles et n'oubliez plus jamais un anniversaire ou une
-                    taille de vêtement.</p>
+                <div class="badge">Nouveau • Bêta Disponible</div>
+                <h1>Restez connecté à <br> <span class="gradient-text">ceux qui comptent.</span></h1>
+                <p>Mutuals est l'espace privé pour votre famille et vos amis proches. Anniversaires, tailles de
+                    vêtements, idées cadeaux... tout est là, sécurisé.</p>
                 <div class="hero-buttons">
                     <a href="downloads/famille-app-release.apk" class="btn btn-primary btn-large">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
@@ -42,67 +63,137 @@
                             <path d="M12 12l0 -9"></path>
                             <path d="M9 16l3 3l3 -3"></path>
                         </svg>
-                        Télécharger pour Android
+                        <span>Télécharger APK</span>
                     </a>
-                    <p class="version-info">Version Beta • Gratuit</p>
+                    <a href="#features" class="btn btn-secondary btn-large">En savoir plus</a>
+                </div>
+                <div class="trust-badge">
+                    <span>🛡️ Données privées & sécurisées</span>
+                    <span>✨ Pas de publicités</span>
                 </div>
             </div>
-            <div class="hero-image">
-                <!-- Placeholder for app screenshot, using icon for now or a CSS shape -->
-                <div class="phone-mockup">
-                    <img src="assets/img/icon.png" alt="App Preview" class="app-screen">
+            <div class="hero-image-wrapper">
+                <div class="phone-frame">
+                    <img src="assets/img/icon.png" alt="App Screen" class="app-screen-placeholder">
+                    <!-- Overlay text to simulate app UI if no screenshot -->
+                    <div class="screen-overlay">
+                        <div class="overlay-card">
+                            <span>🎂 Anniversaire de Maman</span>
+                            <small>Dans 2 jours</small>
+                        </div>
+                        <div class="overlay-card right">
+                            <span>👕 Taille L / 40</span>
+                            <small>Mis à jour</small>
+                        </div>
+                    </div>
                 </div>
+                <div class="floating-card c1">🎁 Souhaits</div>
+                <div class="floating-card c2">📅 Planning</div>
             </div>
         </div>
     </header>
 
     <!-- Features Section -->
-    <section class="features">
+    <section id="features" class="features">
         <div class="container">
-            <h2>Tout ce dont vous avez besoin</h2>
+            <div class="section-header">
+                <h2>Pourquoi <span class="gradient-text">Mutuals</span> ?</h2>
+                <p>Une application pensée pour simplifier la charge mentale de la famille.</p>
+            </div>
             <div class="grid">
-                <div class="card">
-                    <div class="icon">🎂</div>
+                <div class="feature-card">
+                    <div class="icon-box purple">🎂</div>
                     <h3>Anniversaires</h3>
-                    <p>Calendrier intelligent des anniversaires et idées cadeaux pour ne jamais manquer une occasion.
+                    <p>Ne manquez plus jamais une date importante. Recevez des rappels discrets et préparez l'événement.
                     </p>
                 </div>
-                <div class="card">
-                    <div class="icon">👕</div>
-                    <h3>Tailles & Styles</h3>
-                    <p>Gardez les tailles de vêtements de vos proches toujours à portée de main.</p>
+                <div class="feature-card orange">
+                    <div class="icon-box">👕</div>
+                    <h3>Sizing intelligent</h3>
+                    <p>Plus besoin de demander "C'est quoi ta taille ?". Toutes les mensurations de vos proches au même
+                        endroit.</p>
                 </div>
-                <div class="card">
-                    <div class="icon">🔒</div>
-                    <h3>Espace Privé</h3>
-                    <p>Vos groupes et contacts sont personnels. Partagez uniquement ce que vous souhaitez avec vos
-                        Mutuals.</p>
+                <div class="feature-card blue">
+                    <div class="icon-box">🔒</div>
+                    <h3>100% Privé</h3>
+                    <p>Vos groupes vous appartiennent. Créez des cercles (Famille, Amis, Collègues) visibles de vous
+                        seul.</p>
                 </div>
-                <div class="card">
-                    <div class="icon">🎁</div>
-                    <h3>Listes de Souhaits</h3>
-                    <p>Partagez vos envies cadeaux avec votre cercle sans gâcher la surprise.</p>
+                <div class="feature-card pink">
+                    <div class="icon-box">🎁</div>
+                    <h3>Wishlists</h3>
+                    <p>Partagez vos envies cadeaux simplement. Fini les doublons et les pannes d'inspiration.</p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- App Store Placeholder -->
-    <section class="stores">
+    <!-- How it works -->
+    <section id="how-it-works" class="steps-section">
         <div class="container">
-            <h3>Bientôt disponible sur iPhone</h3>
-            <p>Nous travaillons dur pour porter l'expérience Mutuals sur iOS.</p>
+            <div class="section-header">
+                <h2>Comment ça marche</h2>
+            </div>
+            <div class="steps-grid">
+                <div class="step-item">
+                    <div class="step-number">1</div>
+                    <h3>Créez votre profil</h3>
+                    <p>Renseignez vos infos, vos tailles et vos souhaits.</p>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">2</div>
+                    <h3>Invitez vos proches</h3>
+                    <p>Envoyez un lien unique pour rejoindre votre cercle.</p>
+                </div>
+                <div class="step-item">
+                    <div class="step-number">3</div>
+                    <h3>Organisez vos groupes</h3>
+                    <p>Créez des groupes privés pour trier vos contacts.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="faq-section">
+        <div class="container">
+            <div class="section-header">
+                <h2>Questions Fréquentes</h2>
+            </div>
+            <div class="faq-grid">
+                <div class="faq-item">
+                    <h4>Est-ce gratuit ?</h4>
+                    <p>Oui, Mutuals est actuellement en Bêta gratuite et sans publicité.</p>
+                </div>
+                <div class="faq-item">
+                    <h4>Mes données sont-elles vendues ?</h4>
+                    <p>Jamais. Vos données privées restent sur votre téléphone. Les données partagées sont cryptées.</p>
+                </div>
+                <div class="faq-item">
+                    <h4>Quand sortira la version iOS ?</h4>
+                    <p>Nous travaillons activement sur la version iPhone. Inscrivez-vous pour être notifié !</p>
+                </div>
+            </div>
         </div>
     </section>
 
     <!-- Footer -->
     <footer>
         <div class="container">
-            <div class="footer-links">
-                <a href="privacy.html">Politique de Confidentialité</a>
-                <a href="mailto:contact@mutuals.io">Support</a>
+            <div class="footer-content">
+                <div class="footer-brand">
+                    <span class="footer-logo">Mutuals</span>
+                    <p>Connecter les cercles qui comptent.</p>
+                </div>
+                <div class="footer-links-col">
+                    <a href="privacy.html">Confidentialité</a>
+                    <a href="mailto:contact@mutuals.io">Support</a>
+                    <a href="#">Twitter</a>
+                </div>
             </div>
-            <p>&copy; 2024 Mutuals. Tous droits réservés.</p>
+            <div class="footer-bottom">
+                <p>&copy; 2026 Mutuals. Fait avec ❤️.</p>
+            </div>
         </div>
     </footer>
 
