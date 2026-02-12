@@ -1,0 +1,163 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import '../models/member.dart';
+import '../theme/app_theme.dart';
+
+class MemberAvatar extends StatelessWidget {
+  final Member member;
+  final double size;
+  final bool showBorder;
+
+  const MemberAvatar({
+    super.key,
+    required this.member,
+    this.size = 56,
+    this.showBorder = true,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // Custom avatar with character + background color
+    if (member.avatarType == 'custom' && member.avatarCharacterId != null) {
+      return _buildCustomAvatar();
+    } else if (member.avatarType == 'image' && member.avatarValue.isNotEmpty) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          image: DecorationImage(
+            image: FileImage(File(member.avatarValue)),
+            fit: BoxFit.cover,
+          ),
+          border: showBorder ? Border.all(
+            color: Colors.white.withValues(alpha: 0.4),
+            width: size * 0.04, // Responsive border width
+          ) : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.2),
+              blurRadius: size * 0.2,
+              offset: Offset(0, size * 0.1),
+            ),
+          ],
+        ),
+      );
+    } else if (member.avatarType == 'emoji') {
+       return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark 
+              ? Colors.white.withValues(alpha: 0.1) 
+              : Colors.white,
+          shape: BoxShape.circle,
+          border: showBorder ? Border.all(
+            color: Colors.white.withValues(alpha: 0.4),
+            width: size * 0.04,
+          ) : null,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: size * 0.2,
+              offset: Offset(0, size * 0.1),
+            ),
+          ],
+        ),
+        child: Center(
+          child: Text(
+            member.avatarValue.isEmpty ? '👤' : member.avatarValue,
+            style: TextStyle(fontSize: size * 0.5),
+          ),
+        ),
+      );
+    } else {
+      // Gradient fallback
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          gradient: AppTheme.getGradient(member.gradient),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: AppTheme.getGradient(member.gradient)
+                  .colors
+                  .first
+                  .withValues(alpha: 0.4),
+              blurRadius: size * 0.2,
+              offset: Offset(0, size * 0.1),
+            ),
+          ],
+          border: showBorder ? Border.all(
+            color: Colors.white.withValues(alpha: 0.4),
+            width: size * 0.04,
+          ) : null,
+        ),
+        child: Center(
+          child: Text(
+            member.name.isNotEmpty 
+                ? member.name.substring(0, member.name.length >= 2 ? 2 : member.name.length).toUpperCase() 
+                : '?',
+            style: TextStyle(
+              fontSize: size * 0.35,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      );
+    }
+  }
+
+  Widget _buildCustomAvatar() {
+    final bgColor = _parseColor(member.avatarBackgroundColor ?? '#6366F1');
+    
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: bgColor,
+        shape: BoxShape.circle,
+        border: showBorder
+            ? Border.all(
+                color: Colors.white.withValues(alpha: 0.4),
+                width: size * 0.04,
+              )
+            : null,
+        boxShadow: [
+          BoxShadow(
+            color: bgColor.withValues(alpha: 0.3),
+            blurRadius: size * 0.2,
+            offset: Offset(0, size * 0.1),
+          ),
+        ],
+      ),
+      child: ClipOval(
+        child: Image.asset(
+          'assets/avatars/${member.avatarCharacterId}.png',
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) {
+            return Icon(
+              Icons.person,
+              size: size * 0.6,
+              color: Colors.white.withValues(alpha: 0.8),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Color _parseColor(String hexColor) {
+    try {
+      String hex = hexColor.replaceAll('#', '');
+      if (hex.length == 6) {
+        hex = 'FF$hex';
+      }
+      return Color(int.parse(hex, radix: 16));
+    } catch (e) {
+      return const Color(0xFF6366F1);
+    }
+  }
+}

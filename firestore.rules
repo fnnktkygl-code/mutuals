@@ -1,0 +1,43 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is member of family
+    function isFamilyMember(familyId) {
+      return request.auth.uid in get(/databases/$(database)/documents/families/$(familyId)).data.memberUids;
+    }
+
+    match /families/{familyId} {
+      // Allow create by any authenticated user
+      allow create: if request.auth != null;
+      
+      // Allow read if user is authenticated
+      // Ideally, we'd restrict this to members + invite code queries, but
+      // complex query restrictions are hard to enforce in rules without
+      // blocking the 'join' flow. Authenticaton is the baseline.
+      allow read: if request.auth != null; 
+      
+      // Allow update if member OR if joining (adding self)
+      // The join flow adds the user's UID to memberUids.
+      allow update: if request.auth != null && (
+        // Existing member updating
+        request.auth.uid in resource.data.memberUids ||
+        // User adding themselves to memberUids (Join flow)
+        (
+          request.resource.data.memberUids.hasAll(resource.data.memberUids) &&
+          request.resource.data.memberUids.size() == resource.data.memberUids.size() + 1 &&
+          request.resource.data.memberUids.hasAny([request.auth.uid])
+        )
+      );
+
+      // Subcollections: Only members can access
+      match /members/{memberId} {
+        allow read, write: if isFamilyMember(familyId);
+      }
+      
+      match /groups/{groupId} {
+        allow read, write: if isFamilyMember(familyId);
+      }
+    }
+  }
+}
