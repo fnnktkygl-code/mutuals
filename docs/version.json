@@ -1,6 +1,6 @@
 {
-    "version": "1.0.1+3",
-    "buildNumber": 3,
+    "version": "1.0.1+4",
+    "buildNumber": 4,
     "downloadUrl": "https://fnnktkygl-code.github.io/mutuals/downloads/famille-app-release.apk",
-    "releaseNotes": "Correctif: Permissions d'édition de profil et affichage 'Moi'."
+    "releaseNotes": "Nouveau: Bouton pour vérifier les mises à jour dans les réglages."
 }

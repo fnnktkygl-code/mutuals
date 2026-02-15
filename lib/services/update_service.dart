@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 class UpdateService {
   static const String _versionUrl = 'https://fnnktkygl-code.github.io/mutuals/version.json';
 
-  Future<void> checkForUpdates(BuildContext context) async {
+  Future<void> checkForUpdates(BuildContext context, {bool manualTrigger = false}) async {
     try {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentBuildNumber = int.tryParse(packageInfo.buildNumber) ?? 0;
@@ -24,10 +24,23 @@ class UpdateService {
           if (context.mounted) {
             _showUpdateDialog(context, downloadUrl ?? '', releaseNotes);
           }
+        } else if (manualTrigger && context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Votre application est à jour ! 🚀')),
+           );
         }
+      } else if (manualTrigger && context.mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Erreur de vérification: ${response.statusCode}')),
+         );
       }
     } catch (e) {
       debugPrint('Error checking for updates: $e');
+      if (manualTrigger && context.mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(
+           SnackBar(content: Text('Erreur: $e')),
+         );
+      }
     }
   }
 

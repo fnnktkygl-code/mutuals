@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
+import '../services/update_service.dart';
 
 import '../widgets/glass_card.dart';
 import '../theme/app_theme.dart';
@@ -190,9 +191,38 @@ class SettingsScreen extends StatelessWidget {
             // About Section
             _buildSectionTitle(context, 'ℹ️ À propos'),
             const SizedBox(height: 12),
-            GlassCard(
-              padding: const EdgeInsets.all(16),
-              onTap: () async {
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: context.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.system_update, color: context.colors.primary),
+                      ),
+                      title: Text('Vérifier les mises à jour', style: TextStyle(fontWeight: FontWeight.w600, color: context.textColor)),
+                      trailing: Icon(Icons.arrow_forward_ios, size: 14, color: context.textTertiary),
+                      onTap: () => UpdateService().checkForUpdates(context, manualTrigger: true),
+                    ),
+                    const Divider(),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: context.surfaceVariant,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.help_outline, color: context.colors.primary),
+                      ),
+                      title: const Text('Revoir les tutoriels', style: TextStyle(fontWeight: FontWeight.w600)),
+                      trailing: Icon(Icons.arrow_forward_ios, size: 14, color: context.textTertiary),
+                      onTap: () async {
                 final confirm = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
@@ -213,35 +243,7 @@ class SettingsScreen extends StatelessWidget {
                      );
                    }
                 }
-              },
-              child: Row(
-                children: [
-                   Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: context.surfaceVariant,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Icon(
-                      Icons.help_outline,
-                      color: context.accent,
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Revoir les tutoriels',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: context.textColor,
-                    ),
-                  ),
-                  const Spacer(),
-                  Icon(
-                    Icons.refresh,
-                    color: context.textTertiary,
-                    size: 16,
+                    },
                   ),
                 ],
               ),
