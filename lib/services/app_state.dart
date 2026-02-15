@@ -201,6 +201,12 @@ class AppState extends ChangeNotifier with MemberManager {
     notifyListeners();
   }
 
+  Future<void> refreshData() async {
+    // Re-fetch everything
+    await initialize();
+    notifyListeners();
+  }
+
   // ========== GROUP MANAGEMENT ==========
 
   Future<void> createGroup(String name, {String? emoji, String? background}) async {
@@ -502,10 +508,7 @@ class AppState extends ChangeNotifier with MemberManager {
     }
   }
 
-  Future<void> refreshData() async {
-    // Mostly handled by streams, but can force check
-    notifyListeners();
-  }
+
 
   // ========== LISTENERS ==========
 

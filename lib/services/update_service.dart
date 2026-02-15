@@ -70,7 +70,8 @@ class UpdateService {
           FilledButton(
             onPressed: () {
               Navigator.pop(ctx);
-              _launchUrl(url);
+              // Redirect to website for download
+              _launchUrl('https://fnnktkygl-code.github.io/mutuals/');
             },
             child: const Text('Télécharger'),
           ),

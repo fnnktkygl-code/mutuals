@@ -285,13 +285,19 @@ class _MembersTabState extends State<MembersTab> {
 
             // SCROLLABLE LIST
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                children: [
-                  // "Moi" Section is ALWAYS visible now
-                  if (myProfile != null) ...[
-                    Padding(
-                      padding: const EdgeInsets.only(left: 12, bottom: 8, top: 4),
+              child: RefreshIndicator(
+                onRefresh: () async {
+                   await appState.refreshData();
+                },
+                color: context.colors.primary,
+                backgroundColor: context.colors.surface,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  children: [
+                    // "Moi" Section is ALWAYS visible now
+                    if (myProfile != null) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(left: 12, bottom: 8, top: 4),
                       child: Text(
                         'MOI',
                         style: TextStyle(
@@ -339,6 +345,7 @@ class _MembersTabState extends State<MembersTab> {
                   const SizedBox(height: 100), 
                 ],
               ),
+            ),
             ),
           ],
         ),
