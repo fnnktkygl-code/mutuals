@@ -1,6 +1,6 @@
 {
-    "version": "1.0.1+5",
-    "buildNumber": 5,
+    "version": "1.0.1+6",
+    "buildNumber": 6,
     "downloadUrl": "https://fnnktkygl-code.github.io/mutuals/downloads/famille-app-release.apk",
-    "releaseNotes": "Nouveau: Bouton pour vérifier les mises à jour dans les réglages."
+    "releaseNotes": "Correctif de stabilité pour Android (Crash au démarrage résolu)."
 }
