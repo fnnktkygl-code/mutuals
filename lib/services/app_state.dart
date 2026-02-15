@@ -584,8 +584,14 @@ class AppState extends ChangeNotifier with MemberManager {
        // Skip current user entries here — _ensureCurrentUserInList handles "Moi"
        if (m.id == currentUserId) continue;
        if (profileId != null && m.id == profileId) continue;
-       if (!uniqueMembers.containsKey(m.id)) {
-         uniqueMembers[m.id] = m;
+       // Force isOwner to false for all remote members.
+       // Ownership is determined by:
+       // 1. currentUser matching the ID (handled below in _ensureCurrentUserInList)
+       // 2. ownerId matching currentUser (Restricted Profiles) - handled by MemberDetailScreen check
+       var processedMember = m.copyWith(isOwner: false);
+
+       if (!uniqueMembers.containsKey(processedMember.id)) {
+         uniqueMembers[processedMember.id] = processedMember;
        }
     }
     
@@ -607,7 +613,7 @@ class AppState extends ChangeNotifier with MemberManager {
                   final filtered = uniqueMap.values.where((m) {
              if (currentUserId == null) return m.ownerId == null;
              return m.canView(currentUserId);
-          }).toList();
+          }).map((m) => m.copyWith(isOwner: false)).toList();
          processedMembers = filtered.toList();
       }
       
@@ -632,7 +638,7 @@ class AppState extends ChangeNotifier with MemberManager {
     } else {
         canonicalProfile = Member(
           id: currentUserId,
-          name: "Moi",
+          name: "Profil",
           gradient: 'from-purple-400 to-purple-600',
           isOwner: true, 
         );

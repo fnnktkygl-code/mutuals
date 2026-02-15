@@ -580,7 +580,7 @@ class _MembersTabState extends State<MembersTab> {
                               children: [
                                 Flexible(
                                   child: Text(
-                                    member.name,
+                                    isMe ? 'Moi' : member.name, 
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
@@ -589,24 +589,7 @@ class _MembersTabState extends State<MembersTab> {
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
-                                if (isMe) ...[
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: accentColor.withValues(alpha: 0.12),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: Text(
-                                      '✨ Moi',
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: accentColor,
-                                      ),
-                                    ),
-                                  ),
-                                ],
+
                                 if (hasBirthdaySoon && !isMe) ...[
                                   const SizedBox(width: 8),
                                   Container(
