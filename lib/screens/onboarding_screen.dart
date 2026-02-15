@@ -50,12 +50,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         avatarBackgroundColor: _avatarBackgroundColor,
       ).then((_) {
         if (mounted) {
-          setState(() => _step++);
+           _finishOnboarding();
         }
       });
-    } else if (_step == 3) {
-      // Complete onboarding — go to home
-      _finishOnboarding();
     } else {
       setState(() => _step++);
     }
@@ -92,7 +89,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 // Progress indicator
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(4, (index) {
+                  children: List.generate(3, (index) {
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       height: 6,
@@ -127,7 +124,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Text(
-                          _step == 3 ? "C'est parti !" : (_step == 2 ? 'Continuer' : 'Continuer'),
+                          _step == 2 ? "C'est parti !" : 'Continuer',
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -155,8 +152,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         return _buildNameStep();
       case 2:
         return _buildAvatarStep();
-      case 3:
-        return _buildFamilyStep();
       default:
         return const SizedBox();
     }
@@ -385,94 +380,5 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     );
   }
 
-  Widget _buildFamilyStep() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: const Color(0xFF1E293B).withValues(alpha: 0.1),
-            shape: BoxShape.circle,
-          ),
-          child: const Icon(
-            Icons.cloud_sync_rounded,
-            size: 40,
-            color: Color(0xFF1E293B),
-          ),
-        ),
-        const SizedBox(height: 32),
-        const Text(
-          'Synchronisation',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF1E293B),
-            letterSpacing: -0.5,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Partagez vos données avec vos proches\nen temps réel sur tous les appareils',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey.shade600,
-            height: 1.4,
-          ),
-        ),
-        const SizedBox(height: 40),
-        // Create family button
-        SizedBox(
-          width: double.infinity,
-          child: OutlinedButton.icon(
-            onPressed: () async {
-              await Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const GroupSettingsScreen(),
-                ),
-              );
-              if (mounted) {
-                 // The user might have joined/created a family or just explored. 
-                 // We can check AppState or just finish onboarding if they return.
-                 // For now, let's check if they have a family:
-                 if (context.read<AppState>().hasFamily) {
-                    _finishOnboarding();
-                 }
-              }
-            },
-            icon: const Icon(Icons.group_add),
-            label: const Text('Créer ou rejoindre un espace'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFF1E293B),
-              side: const BorderSide(color: Color(0xFF1E293B), width: 2),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              textStyle: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        TextButton(
-          onPressed: _finishOnboarding,
-          child: Text(
-            'Plus tard',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey.shade500,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+
 }
