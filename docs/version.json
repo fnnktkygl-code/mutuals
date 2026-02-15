@@ -1,6 +1,6 @@
 {
-    "version": "1.0.1+8",
-    "buildNumber": 8,
+    "version": "1.0.1+9",
+    "buildNumber": 9,
     "downloadUrl": "https://fnnktkygl-code.github.io/mutuals/downloads/famille-app-release.apk",
-    "releaseNotes": "Correctif : Le bouton de téléchargement ouvre maintenant correctement le site web."
+    "releaseNotes": "Correctif : Résolution d'un crash rare lors de l'ouverture d'un profil."
 }

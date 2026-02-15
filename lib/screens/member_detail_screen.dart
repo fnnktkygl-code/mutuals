@@ -73,9 +73,23 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       );
       _isEditing = true;
     } else {
-      _member = appState.getMember(widget.memberId!)!;
-      // Only show tutorial if we are viewing an existing member
-      WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
+      final existingMember = appState.getMember(widget.memberId!);
+      if (existingMember == null) {
+        // Member not found (deleted or sync issue) - Close screen safely
+        _member = Member(
+          id: '',
+          name: '',
+          gradient: 'from-purple-400 to-purple-600',
+          fitPreference: FitPreference.regular,
+        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) Navigator.pop(context);
+        });
+      } else {
+        _member = existingMember;
+        // Only show tutorial if we are viewing an existing member
+        WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
+      }
     }
 
     _nameController = TextEditingController(text: _member.name);
