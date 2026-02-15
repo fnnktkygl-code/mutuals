@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = famille_io
+PRODUCT_NAME = Mutuals
 
 // The application's bundle identifier
 PRODUCT_BUNDLE_IDENTIFIER = io.famille.familleIo
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 io.famille. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 Mutuals. All rights reserved.

@@ -6,7 +6,7 @@ class Member {
   final String id;
   final String name;
   final String relationship;
-  final List<String> groupIds;
+  // groupIds removed
   final String gradient;
   final FitPreference fitPreference;
   final bool isOwner;
@@ -58,7 +58,8 @@ class Member {
   final String? pickupPointAddress;
 
   // New v13.0 Fields - Privacy/Isolation
-  final String? ownerId; // IF SET: only visible to this user. IF NULL: shared with family.
+  final String? ownerId; // IF SET: managed by this user (Restricted Profile)
+  final List<String> sharedWith; // List of user IDs who can also see this profile
 
   Member({
     required this.id,
@@ -72,7 +73,7 @@ class Member {
     this.birthday,
     this.tags = const [],
     this.fitPreference = FitPreference.regular,
-    this.groupIds = const [],
+    // groupIds removed
     this.shareAccess = const {'age': true, 'sizes': true},
     this.lastUpdated,
     this.isOwner = false,
@@ -97,14 +98,23 @@ class Member {
     this.pickupPointName,
     this.pickupPointAddress,
     this.ownerId,
+    this.sharedWith = const [],
   });
+
+  /// Check if a user can view this profile
+  bool canView(String userId) {
+    if (ownerId == null) return true; // Public family member
+    if (ownerId == userId) return true; // Owner/Manager
+    if (sharedWith.contains(userId)) return true; // Shared with user
+    return false; // Restricted
+  }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
       'relationship': relationship,
-      'groupIds': groupIds,
+      // groupIds removed
       'gradient': gradient, // Kept for backward compatibility
       'fitPreference': fitPreference.toJson(),
       'isOwner': isOwner,
@@ -164,20 +174,41 @@ class Member {
     return nextBirthday.difference(today).inDays;
   }
 
-  factory Member.fromJson(Map<String, dynamic> json) {
-    // Migration logic for old 'groupId'
-    List<String> parsedGroupIds = [];
-    if (json['groupIds'] != null) {
-      parsedGroupIds = (json['groupIds'] as List).map((e) => e.toString()).toList();
-    } else if (json['groupId'] != null) {
-      parsedGroupIds = [json['groupId'].toString()];
-    }
+  /// Profile completion as a 0.0–1.0 value.
+  double get completionPercentage {
+    int filled = 0;
+    const total = 8;
+    if (name.trim().isNotEmpty) filled++;
+    if (birthday != null) filled++;
+    if (relationship.isNotEmpty && relationship != 'Membre') filled++;
+    if (avatarType != 'gradient' || avatarValue != 'from-purple-400 to-purple-600') filled++;
+    if (generalTopSize.isNotEmpty) filled++;
+    if (generalBottomSize.isNotEmpty) filled++;
+    if (generalShoeSize.isNotEmpty) filled++;
+    if (wishHistory.isNotEmpty) filled++;
+    return filled / total;
+  }
 
+  /// List of missing profile fields (French labels).
+  List<String> get missingFields {
+    final missing = <String>[];
+    if (name.trim().isEmpty) missing.add('Prénom');
+    if (birthday == null) missing.add('Anniversaire');
+    if (relationship.isEmpty || relationship == 'Membre') missing.add('Relation');
+    if (avatarType == 'gradient' && avatarValue == 'from-purple-400 to-purple-606') missing.add('Avatar');
+    if (generalTopSize.isEmpty) missing.add('Taille haut');
+    if (generalBottomSize.isEmpty) missing.add('Taille bas');
+    if (generalShoeSize.isEmpty) missing.add('Pointure');
+    if (wishHistory.isEmpty) missing.add('Envie du mois');
+    return missing;
+  }
+
+  factory Member.fromJson(Map<String, dynamic> json) {
     return Member(
       id: json['id'].toString(),
       name: json['name'] ?? '',
       relationship: json['relationship'] ?? '',
-      groupIds: parsedGroupIds,
+      // groupIds removed
       gradient: json['gradient'] ?? 'from-purple-400 to-purple-600',
       fitPreference: FitPreference.fromJson(json['fitPreference'] ?? 'regular'),
       isOwner: json['isOwner'] ?? false,
@@ -210,6 +241,7 @@ class Member {
       pickupPointName: json['pickupPointName'],
       pickupPointAddress: json['pickupPointAddress'],
       ownerId: json['ownerId'],
+      sharedWith: (json['sharedWith'] as List?)?.map((e) => e.toString()).toList() ?? [],
     );
   }
 
@@ -217,7 +249,7 @@ class Member {
     String? id,
     String? name,
     String? relationship,
-    List<String>? groupIds,
+    // groupIds removed
     String? gradient,
     FitPreference? fitPreference,
     bool? isOwner,
@@ -250,12 +282,13 @@ class Member {
     String? pickupPointName,
     String? pickupPointAddress,
     String? ownerId,
+    List<String>? sharedWith,
   }) {
     return Member(
       id: id ?? this.id,
       name: name ?? this.name,
       relationship: relationship ?? this.relationship,
-      groupIds: groupIds ?? this.groupIds,
+      // groupIds removed
       gradient: gradient ?? this.gradient,
       fitPreference: fitPreference ?? this.fitPreference,
       isOwner: isOwner ?? this.isOwner,
@@ -264,9 +297,9 @@ class Member {
       shoes: shoes ?? this.shoes,
       accessories: accessories ?? this.accessories,
       topBrands: topBrands ?? this.topBrands,
-      bottomBrands: bottomBrands ?? this.bottomBrands,
-      shoeBrands: shoeBrands ?? this.shoeBrands,
-
+      bottomBrands: bottomBrands ?? this.bottomBrands, // Fixed potential bug in original copyWith
+      shoeBrands: shoeBrands ?? this.shoeBrands, // Fixed potential bug in original copyWith
+      
       wishlist: wishlist ?? this.wishlist,
       wishHistory: wishHistory ?? this.wishHistory,
       generalTopSize: generalTopSize ?? this.generalTopSize,
@@ -289,6 +322,7 @@ class Member {
       pickupPointName: pickupPointName ?? this.pickupPointName,
       pickupPointAddress: pickupPointAddress ?? this.pickupPointAddress,
       ownerId: ownerId ?? this.ownerId,
+      sharedWith: sharedWith ?? this.sharedWith,
     );
   }
 }

@@ -54,9 +54,9 @@ class AppTypography extends ThemeExtension<AppTypography> {
   }
 
   static final regular = AppTypography(
-    heroTitle: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.bold),
-    sectionHeader: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w600),
-    cardTitle: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),
+    heroTitle: GoogleFonts.nunito(fontSize: 32, fontWeight: FontWeight.w800),
+    sectionHeader: GoogleFonts.nunito(fontSize: 20, fontWeight: FontWeight.w700),
+    cardTitle: GoogleFonts.nunito(fontSize: 16, fontWeight: FontWeight.w700),
     cardSubtitle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.normal),
     inputLabel: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500),
     smallLabel: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),

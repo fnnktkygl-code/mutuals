@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../theme/design_tokens.dart';
 
 class GlassCard extends StatelessWidget {
   final Widget child;
@@ -16,7 +17,7 @@ class GlassCard extends StatelessWidget {
     this.onTap,
     this.padding,
     this.margin,
-    this.borderRadius = 28,
+    this.borderRadius = DesignTokens.radiusLg,
     this.useBlur = false,
   });
 

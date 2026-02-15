@@ -80,7 +80,7 @@ class _SplashScreenState extends State<SplashScreen> {
               delay: const Duration(milliseconds: 500),
               duration: const Duration(milliseconds: 800),
               child: Text(
-                'Famille',
+                'Mutuals',
                 style: TextStyle(
                   fontFamily: 'Outfit', // Ensure we use the best font if available, or fallback
                   fontSize: 32,

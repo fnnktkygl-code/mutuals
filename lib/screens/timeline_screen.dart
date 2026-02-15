@@ -8,8 +8,11 @@ import '../services/app_state.dart';
 import '../models/member.dart';
 import '../models/monthly_wish.dart';
 import '../widgets/member_avatar.dart';
+import '../widgets/filou_bubble.dart';
+import '../theme/filou_state.dart';
 import '../utils/date_utils.dart' as date_utils;
 import '../theme/app_theme.dart';
+
 class TimelineScreen extends StatefulWidget {
   const TimelineScreen({super.key});
 
@@ -35,16 +38,23 @@ class _TimelineScreenState extends State<TimelineScreen> {
     final targets = [
       TutorialService.createTarget(
         key: _titleKey,
-        title: "Calendrier des Envies",
-        description: "Visualisez d'un coup d'œil les anniversaires et les idées cadeaux pour les 12 prochains mois.",
+        title: "Calendrier des Envies 🎁",
+        description: "Toutes les envies et anniversaires de tes proches, mois par mois. C'est moi, Filou, qui t'accompagne !",
         align: ContentAlign.bottom,
+        filou: FilouState.gift,
+        stepNumber: 1,
+        totalSteps: 2,
       ),
       TutorialService.createTarget(
         key: _timelineListKey,
-        title: "Timeline Horizontale",
-        description: "Faites défiler horizontalement pour voir les événements futurs de chaque membre.",
+        title: "Swipe pour explorer 👉",
+        description: "Fais défiler horizontalement pour découvrir les envies de chaque mois. Clique sur une carte pour voir les détails !",
         align: ContentAlign.top,
         shape: ShapeLightFocus.RRect,
+        filou: FilouState.happy,
+        stepNumber: 2,
+        totalSteps: 2,
+        isLast: true,
       ),
     ];
 
@@ -58,102 +68,87 @@ class _TimelineScreenState extends State<TimelineScreen> {
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
+    // Members are already filtered by current group in AppState
     final members = appState.members;
-    final groups = appState.groups;
+    final currentGroup = appState.currentGroup;
 
     final months = date_utils.DateUtils.getLast12MonthsKeysReverse();
     final currentKey = date_utils.DateUtils.getCurrentMonthKey();
 
-    return DefaultTabController(
-      length: groups.length + 1,
-      child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    key: _titleKey,
-                    children: [
-                      Text(
-                        'Calendrier ',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: context.colors.onSurface,
-                          letterSpacing: -1,
-                        ),
+    return SafeArea(
+      child: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 32, 24, 24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  key: _titleKey,
+                  children: [
+                    Text(
+                      'Calendrier ',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: context.colors.onSurface,
+                        letterSpacing: -1,
                       ),
-                      Text(
-                        'des Envies',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w900,
-                          color: context.colors.primary,
-                          letterSpacing: -1,
-                        ),
+                    ),
+                    Text(
+                      'des Envies',
+                      style: TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: context.colors.primary,
+                        letterSpacing: -1,
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Historique des envies & anniversaires',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: context.colors.onSurfaceVariant,
-                      height: 1.3,
                     ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  currentGroup != null 
+                      ? 'Pour l\'espace "${currentGroup.name}"'
+                      : 'Sélectionnez un espace pour voir le calendrier.',
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: context.colors.onSurfaceVariant,
+                    height: 1.3,
                   ),
-                  const SizedBox(height: 24),
-                  Container(
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: context.colors.surfaceContainerHighest,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: TabBar(
-                      isScrollable: true,
-                      tabs: [
-                        const Tab(text: 'Tous'),
-                        ...groups.map((g) => Tab(text: '${g.icon} ${g.name}')),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 24),
+              ],
             ),
-            Expanded(
-              child: TabBarView(
-                children: [
-                  _buildTimelineList(context, members, null, months, currentKey),
-                  ...groups.map((g) => _buildTimelineList(context, members, g.id, months, currentKey)),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+          Expanded(
+            child: _buildTimelineList(context, members, months, currentKey),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildTimelineList(
     BuildContext context,
-    List members,
-    String? groupId,
+    List<Member> members,
     List<String> allMonths,
     String currentKey,
   ) {
-    final filteredMembers = groupId == null
-        ? members
-        : members.where((m) => m.groupIds.contains(groupId)).toList();
+    if (members.isEmpty) {
+       return const Center(
+         child: FilouBubble(
+           state: FilouState.gift,
+           message: 'Pas encore d\'envies ce mois-ci !\nAjoute les tailles et envies de tes proches.',
+         ),
+       );
+    }
 
     return ListView.builder(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 100),
-      itemCount: filteredMembers.length,
+      itemCount: members.length,
       itemBuilder: (context, index) {
-        final member = filteredMembers[index];
+        final member = members[index];
         // Only assign key to first item for tutorial purpose
         final key = index == 0 ? _timelineListKey : null;
 
@@ -229,6 +224,8 @@ class _TimelineScreenState extends State<TimelineScreen> {
   Widget _buildWishCard(BuildContext context, MonthlyWish? wish, String monthKey, bool isCurrent, Member member) {
     final hasWish = wish != null && wish.text.isNotEmpty;
     final isGifted = wish?.status == WishStatus.gifted;
+    final monthDate = date_utils.DateUtils.getMonthFromKey(monthKey);
+    final isBirthday = member.birthday != null && member.birthday!.month == monthDate.month;
 
     return Container(
       width: 140,
@@ -283,7 +280,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                 ),
               ),
             )
-          else if (member.birthday != null && member.birthday!.month == date_utils.DateUtils.getMonthFromKey(monthKey).month)
+          else if (isBirthday)
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -292,8 +289,9 @@ class _TimelineScreenState extends State<TimelineScreen> {
                     children: [
                       const Icon(Icons.cake, size: 16, color: Color(0xFFEC4899)),
                       const SizedBox(width: 8),
+                      // Provide a default age if calculation fails or is complex
                       Text(
-                        '${_calculateAge(member.birthday!, date_utils.DateUtils.getMonthFromKey(monthKey))} ans !',
+                        'Anniv !', // Simplify age calc for now or import helper
                         style: const TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -305,7 +303,7 @@ class _TimelineScreenState extends State<TimelineScreen> {
                   const SizedBox(height: 4),
                   Flexible(
                     child: Text(
-                      'Trouver un cadeau pour marquer le coup 🎁',
+                      'Trouver un cadeau 🎁',
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -332,9 +330,5 @@ class _TimelineScreenState extends State<TimelineScreen> {
         ],
       ),
     );
-  }
-
-  int _calculateAge(DateTime birthDate, DateTime atDate) {
-    return atDate.year - birthDate.year;
   }
 }

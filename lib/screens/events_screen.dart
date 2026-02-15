@@ -4,7 +4,9 @@ import '../services/app_state.dart';
 import '../models/member.dart';
 import '../widgets/member_avatar.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/filou_bubble.dart';
 import '../utils/zodiac_utils.dart';
+import '../theme/filou_state.dart';
 import '../theme/app_theme.dart';
 
 /// Event types supported
@@ -126,17 +128,16 @@ class _EventsScreenState extends State<EventsScreen> with SingleTickerProviderSt
     // Add birthdays from members
     for (final member in members) {
       if (member.birthday != null) {
-        if (_selectedGroupId == null || member.groupIds.contains(_selectedGroupId)) {
-          events.add(CalendarEvent(
-            title: member.name,
-            subtitle: '${member.age + 1} ans • ${ZodiacUtils.getZodiacSign(member.birthday!)}',
-            date: member.birthday!,
-            type: EventType.birthday,
-            member: member,
-            icon: Icons.cake,
-            color: context.colors.primary,
-          ));
-        }
+        // Show all members since list is already filtered by AppState
+        events.add(CalendarEvent(
+          title: member.name,
+          subtitle: '${member.age + 1} ans • ${ZodiacUtils.getZodiacSign(member.birthday!)}',
+          date: member.birthday!,
+          type: EventType.birthday,
+          member: member,
+          icon: Icons.cake,
+          color: context.colors.primary,
+        ));
       }
     }
     
@@ -161,29 +162,54 @@ class _EventsScreenState extends State<EventsScreen> with SingleTickerProviderSt
           builder: (context, appState, child) {
             final allEvents = _getAllEvents(appState.members);
             
+            if (allEvents.isEmpty) {
+              return Column(
+                children: [
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                    child: Row(
+                      children: [
+                        Text('Événements ', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: context.colors.onSurface, letterSpacing: -1)),
+                        Text('& Anniv', style: TextStyle(fontSize: 32, fontWeight: FontWeight.w900, color: context.colors.primary, letterSpacing: -1)),
+                      ],
+                    ),
+                  ),
+                  const Expanded(
+                    child: Center(
+                      child: FilouBubble(
+                        state: FilouState.celebrating,
+                        message: 'Rien à l\'horizon pour l\'instant !\nAjoute les anniversaires de tes proches.',
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
+            
             return Column(
               children: [
-                // Header
+                // Header — styled like other tabs (no back button)
                 Padding(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
                   child: Row(
                     children: [
-                      IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back),
-                        style: IconButton.styleFrom(
-                          backgroundColor: context.colors.surfaceContainerHighest.withValues(alpha: 0.5),
+                      Text(
+                        'Événements ',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: context.colors.onSurface,
+                          letterSpacing: -1,
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Événements',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: context.colors.onSurface,
-                          ),
+                      Text(
+                        '& Anniv',
+                        style: TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          color: context.colors.primary,
+                          letterSpacing: -1,
                         ),
                       ),
                     ],
@@ -417,10 +443,7 @@ class _EventsScreenState extends State<EventsScreen> with SingleTickerProviderSt
             child: Row(
               children: [
                 _buildFilterChip('Tous', null),
-                ...Provider.of<AppState>(context, listen: false).groups.map((g) => Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: _buildFilterChip('${g.icon} ${g.name}', g.id),
-                )),
+                // Groups filter removed as we only show current group members
               ],
             ),
           ),

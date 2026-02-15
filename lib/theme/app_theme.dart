@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'mascot_colors.dart';
 import 'semantic_colors_extension.dart';
 import 'typography_extension.dart';
 
@@ -510,9 +511,8 @@ class AppTheme {
 
       // Register Extensions
       extensions: [
-        palette.brightness == Brightness.dark
-            ? SemanticColors.dark
-            : SemanticColors.light,
+        SemanticColors.fromMode(mode),
+        MascotColors.fromMode(mode),
         AppTypography.regular,
       ],
     );
@@ -827,6 +827,10 @@ extension ThemeContextExtension on BuildContext {
   /// Get semantic colors
   SemanticColors get semantic =>
       Theme.of(this).extension<SemanticColors>() ?? SemanticColors.light;
+
+  /// Get mascot colors
+  MascotColors get mascotColors =>
+      Theme.of(this).extension<MascotColors>() ?? MascotColors.light;
 
   /// Get app typography
   AppTypography get typography =>

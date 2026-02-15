@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:uuid/uuid.dart';
 import '../models/member.dart';
-import '../models/member_group.dart';
 import '../models/family_model.dart';
 import '../services/storage_service.dart';
 import '../services/notification_service.dart';
@@ -10,30 +12,31 @@ import '../services/theme_service.dart';
 import '../services/auth_service.dart';
 import '../services/sync_service.dart';
 import '../services/member_manager.dart';
-import '../services/group_manager.dart';
 import '../theme/app_theme.dart';
 
 /// Central app state — thin orchestrator.
 ///
 /// Member CRUD is in [MemberManager] mixin.
-/// Group CRUD is in [GroupManager] mixin.
-class AppState extends ChangeNotifier with MemberManager, GroupManager {
+/// Groups (Families) are managed directly here.
+class AppState extends ChangeNotifier with MemberManager {
   // ---- Data owned by AppState, bridged to mixins via overrides ----
 
   List<Member> _members = [];
-  List<MemberGroup> _groups = [];
-  // Map<MemberID, List<GroupID>>
-  Map<String, List<String>> _privateGroupAssignments = {};
+  Member? _currentUserProfile; // Cached "Moi" for consistency across groups
+  
+  // Multi-Group Architecture
+  List<Family> _myGroups = [];
+  String? _currentGroupId;
 
   @override
   List<Member> get memberList => _members;
   @override
   set memberList(List<Member> value) => _members = value;
-
+  
   @override
-  List<MemberGroup> get groupList => _groups;
+  Member? get currentUserProfile => _currentUserProfile;
   @override
-  set groupList(List<MemberGroup> value) => _groups = value;
+  set currentUserProfile(Member? value) => _currentUserProfile = value;
 
   @override
   bool get notificationsOn => _notificationsEnabled;
@@ -49,10 +52,12 @@ class AppState extends ChangeNotifier with MemberManager, GroupManager {
 
   final AuthService _authService = AuthService();
   late final SyncService _syncService = SyncService(_authService);
-  Family? _family;
-  bool _isSyncing = false;
+  
+  final bool _isSyncing = false;
   StreamSubscription? _membersSubscription;
-  StreamSubscription? _groupsSubscription;
+  final List<StreamSubscription> _allMembersSubscriptions = [];
+  final Map<String, List<Member>> _cachedMembersByGroup = {};
+  StreamSubscription? _groupsSubscription; // Listens to list of families
 
   // ---- Getters ----
 
@@ -64,11 +69,78 @@ class AppState extends ChangeNotifier with MemberManager, GroupManager {
   AuthService get authService => _authService;
   @override
   SyncService get syncService => _syncService;
-  Family? get family => _family;
+  
   @override
-  bool get hasFamily => _family != null;
+  bool get hasFamily => _currentGroupId != null;
+  
   bool get isSyncing => _isSyncing;
-  String? get inviteCode => _family?.inviteCode;
+
+  // Group Getters
+  @override
+  List<Family> get myGroups => _myGroups;
+  List<Family> get visibleGroups => _myGroups.where((g) => !g.isPersonal).toList();
+  Family? get personalGroup => _myGroups.where((g) => g.isPersonal).firstOrNull;
+  
+  @override
+  String? get currentGroupId => _currentGroupId;
+  Family? get currentGroup => _myGroups.where((g) => g.id == _currentGroupId).firstOrNull;
+  String? get inviteCode => currentGroup?.inviteCode;
+  
+  // Create Personal Group logic
+  Future<Family> createPersonalGroupIfNeeded() async {
+    if (personalGroup != null) return personalGroup!;
+    
+    final user = _authService.currentUser;
+    if (user == null) throw Exception("User not logged in");
+    
+    // Create hidden group
+    final newGroup = Family(
+        id: const Uuid().v4(), 
+        name: "Mes Contacts", // Internal name, acceptable
+        inviteCode: _generateInviteCode(),
+        createdBy: user.uid,
+        createdAt: DateTime.now(),
+        memberUids: [user.uid],
+        isPersonal: true,
+      );
+      
+     _myGroups = [..._myGroups, newGroup];
+     notifyListeners();
+     
+     // Persist
+     await FirebaseFirestore.instance
+          .collection('families')
+          .doc(newGroup.id)
+          .set(newGroup.toJson());
+          
+     return newGroup;
+  }
+
+  @override
+  List<String> getGroupIdsForMember(String memberId) {
+    // Only used when currentGroupId == 'all', so cache should be populated.
+    // If not 'all', return currentGroupId if available.
+    if (_currentGroupId != 'all' && _currentGroupId != null) {
+       return [_currentGroupId!];
+    }
+    
+    final groupIds = <String>[];
+    _cachedMembersByGroup.forEach((gid, members) {
+       // Only include visible groups in the "chips" or logic?
+       // The user requested: "if he joins will only appears in the 'tou' filter list"
+       // So we should NOT return personal group IDs here if we want to hide them from "Tags"?
+       // Actually, we probably want to filter out personal groups from "Shared" indicators.
+       
+       // Find group
+       final group = _myGroups.where((g) => g.id == gid).firstOrNull;
+       if (group != null && !group.isPersonal) {
+          if (members.any((m) => m.id == memberId)) {
+             groupIds.add(gid);
+          }
+       }
+    });
+    return groupIds;
+  }
 
   /// Get current theme data (cached)
   ThemeData get currentTheme {
@@ -83,39 +155,35 @@ class AppState extends ChangeNotifier with MemberManager, GroupManager {
     _accentColor = await ThemeService.loadAccentColor();
     _notificationsEnabled = await StorageService.loadNotificationsEnabled();
     _members = await StorageService.loadMembers();
-    _groups = await StorageService.loadGroups();
+    _currentUserProfile = await StorageService.loadUserProfile();
     
-    // Load private group assignments (or migrate from legacy member.groupIds if needed)
-    _privateGroupAssignments = await StorageService.loadPrivateGroupAssignments();
+    // Load Groups
+    _myGroups = await StorageService.loadMyFamilies();
+    _currentGroupId = await StorageService.loadActiveFamilyId();
     
-    // Migration: If assignments empty but members have groupIds, fill the map
-    if (_privateGroupAssignments.isEmpty && _members.isNotEmpty) {
-      for (var m in _members) {
-        if (m.groupIds.isNotEmpty) {
-          _privateGroupAssignments[m.id] = List.from(m.groupIds);
+    // Validate current group
+    // Validate current group
+    final current = _myGroups.where((g) => g.id == _currentGroupId).firstOrNull;
+    // Switch if invalid group, or if it is a Personal group (which should be hidden)
+    // We allow 'all' to persist.
+    if (_currentGroupId != 'all' && (current == null || current.isPersonal)) {
+        final visible = _myGroups.where((g) => !g.isPersonal).toList();
+        if (visible.isNotEmpty) {
+           _currentGroupId = visible.first.id;
+        } else if (_myGroups.isNotEmpty) {
+           _currentGroupId = 'all'; // Default to All if only personal exist
+        } else {
+           _currentGroupId = null;
         }
-      }
-      await StorageService.savePrivateGroupAssignments(_privateGroupAssignments);
+        await StorageService.saveActiveFamilyId(_currentGroupId);
     }
-
-    initializeDefaultGroups();
-    if (_groups.isNotEmpty) {
-      await saveGroupsToStorage();
-    }
-    
-    // No sequential ID calculation needed for UUIDs
 
     await _authService.signInAnonymously();
 
-    final storedFamilyId = await StorageService.loadFamilyId();
-    if (storedFamilyId != null) {
-      _syncService.setFamilyId(storedFamilyId);
-      _family = await _syncService.getFamily();
-      if (_family != null) {
-        _startListening();
-      } else {
-        await StorageService.saveFamilyId(null);
-      }
+    // Start Sync
+    _startListeningToGroups();
+    if (_currentGroupId != null) {
+       _startListeningToMembers(_currentGroupId!);
     }
 
     if (_notificationsEnabled) {
@@ -133,146 +201,472 @@ class AppState extends ChangeNotifier with MemberManager, GroupManager {
     notifyListeners();
   }
 
-  // ========== PRIVATE GROUP ASSIGNMENTS ==========
+  // ========== GROUP MANAGEMENT ==========
 
-  List<String> getMemberGroupIds(String memberId) {
-    if (_privateGroupAssignments.containsKey(memberId)) {
-      return _privateGroupAssignments[memberId]!;
+  Future<void> createGroup(String name, {String? emoji, String? background}) async {
+    final user = _authService.currentUser;
+    if (user == null) {
+      throw Exception('Utilisateur non connecté');
     }
-    // Fallback: check member object for legacy/owner data
-    final member = getMember(memberId);
-    return member?.groupIds ?? [];
-  }
-
-  Future<void> updateMemberGroups(String memberId, List<String> groupIds) async {
-    _privateGroupAssignments[memberId] = groupIds;
-    await StorageService.savePrivateGroupAssignments(_privateGroupAssignments);
-    notifyListeners();
-  }
-
-  // ========== FAMILY SYNC ==========
-
-  Future<Family?> createFamily(String name) async {
-    _isSyncing = true;
-    notifyListeners();
 
     try {
-      _family = await _syncService.createFamily(name);
-      if (_family != null) {
-        await StorageService.saveFamilyId(_family!.id);
-        await _syncService.uploadAllMembers(_members);
-        await _syncService.uploadAllGroups(_groups);
-        _startListening();
-      }
-    } finally {
-      _isSyncing = false;
+      // 1. Create Group Object locally
+      final newGroup = Family(
+        id: const Uuid().v4(), 
+        name: name,
+        inviteCode: _generateInviteCode(),
+        createdBy: user.uid,
+        createdAt: DateTime.now(),
+        memberUids: [user.uid],
+        emoji: emoji,
+        background: background,
+      );
+
+      // 2. Optimistic Update (Local State)
+      _myGroups = [..._myGroups, newGroup];
+      await selectGroup(newGroup.id);
       notifyListeners();
+
+      // 3. Persist group to Firestore
+      await FirebaseFirestore.instance
+          .collection('families')
+          .doc(newGroup.id)
+          .set(newGroup.toJson());
+
+      // 4. Sync "Moi" profile to the new group's members collection
+      final myProfile = _currentUserProfile ?? Member(
+        id: user.uid,
+        name: "Moi",
+        gradient: 'from-purple-400 to-purple-600',
+        isOwner: true,
+      );
+      // Ensure canonical Firebase UID
+      final profileToSync = myProfile.id == user.uid
+          ? myProfile
+          : myProfile.copyWith(id: user.uid);
+      await _syncService.syncMember(newGroup.id, profileToSync);
+
+    } catch (e) {
+      debugPrint('Error creating espace: $e');
+      rethrow;
     }
-    return _family;
   }
 
-  Future<Family?> joinFamily(String inviteCode) async {
-    _isSyncing = true;
-    notifyListeners();
+  Future<void> joinGroup(String inviteCode) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
 
     try {
-      _family = await _syncService.joinFamily(inviteCode);
-      if (_family != null) {
-        await StorageService.saveFamilyId(_family!.id);
-        // Important: When joining, upload existing local members (e.g. "Moi")
-        // and groups to the family collection so others can see them.
-        await _syncService.uploadAllMembers(_members);
-        if (_groups.isNotEmpty) {
-           await _syncService.uploadAllGroups(_groups);
+      // 1. Find espace by code
+      final querySnapshot = await FirebaseFirestore.instance
+          .collection('families')
+          .where('inviteCode', isEqualTo: inviteCode)
+          .limit(1)
+          .get();
+
+      if (querySnapshot.docs.isEmpty) {
+        throw Exception("Code d'invitation invalide");
+      }
+
+      final groupDoc = querySnapshot.docs.first;
+      final group = Family.fromMap(groupDoc.data());
+
+      // 2. Check if already member
+      if (group.memberUids.contains(user.uid)) {
+        // Already member, just switch to it
+        if (!_myGroups.any((g) => g.id == group.id)) {
+           _myGroups = [..._myGroups, group];
         }
-        _startListening();
+        await selectGroup(group.id);
+        return;
       }
-    } finally {
-      _isSyncing = false;
-      notifyListeners();
+
+      // 3. Add user to espace
+      await FirebaseFirestore.instance
+          .collection('families')
+          .doc(group.id)
+          .update({
+        'memberUids': FieldValue.arrayUnion([user.uid])
+      });
+
+      // 4. Update local state
+      // (The stream listener in SyncService should pick this up, but we can be optimistic)
+      // For now, let's wait for the stream or just fetch it.
+      // We'll manually add it to _myGroups to be responsive
+      final updatedGroup = group.copyWith(
+        memberUids: [...group.memberUids, user.uid]
+      );
+       _myGroups = [..._myGroups, updatedGroup];
+       await selectGroup(group.id);
+       
+       // Also sync my profile to this new espace so I appear there
+       // We need to find "my" member profile
+       try {
+         final myProfile = _members.firstWhere(
+           (m) => m.id == user.uid, 
+           orElse: () => Member(
+             id: user.uid, 
+             name: "Moi", 
+             gradient: 'from-purple-400 to-purple-600',
+             isOwner: true,
+           )
+         );
+         await _syncService.syncMember(group.id, myProfile);
+       } catch (e) {
+         debugPrint("Error syncing profile to new espace: $e");
+       }
+
+    } catch (e) {
+      debugPrint('Error joining espace: $e');
+      rethrow;
     }
-    return _family;
   }
 
-  Future<void> leaveFamily() async {
-    _stopListening();
-    await _syncService.leaveFamily();
-    await StorageService.saveFamilyId(null);
-    _family = null;
+  Future<void> selectGroup(String groupId) async {
+    if (_currentGroupId == groupId) return;
+    if (!_myGroups.any((g) => g.id == groupId)) return;
+    
+    await _setCurrentGroupInternal(groupId);
+  }
+
+  Future<void> selectAllGroups() async {
+    if (_currentGroupId == 'all') return;
+    await _setCurrentGroupInternal('all');
+  }
+  
+  bool get isAllGroupsSelected => _currentGroupId == 'all';
+  
+  Future<void> _setCurrentGroupInternal(String? groupId) async {
+      _currentGroupId = groupId;
+      await StorageService.saveActiveFamilyId(groupId);
+      
+      _startListeningToMembers();
+      notifyListeners();
+  }
+
+  Future<void> renameGroup(String groupId, String newName) async {
+    final groupIndex = _myGroups.indexWhere((g) => g.id == groupId);
+    if (groupIndex == -1) return;
+    
+    // Optimistic update
+    final oldGroup = _myGroups[groupIndex];
+    final newGroup = oldGroup.copyWith(name: newName);
+    _myGroups[groupIndex] = newGroup;
+    
+    await StorageService.saveMyFamilies(_myGroups);
     notifyListeners();
+    
+    try {
+      await FirebaseFirestore.instance.collection('families').doc(groupId).update({
+        'name': newName
+      });
+    } catch (e) {
+      // Revert on failure
+      _myGroups[groupIndex] = oldGroup;
+      await StorageService.saveMyFamilies(_myGroups);
+      notifyListeners();
+      rethrow;
+    }
+  }
+
+  Future<void> leaveGroup(String groupId) async {
+    final isCurrent = _currentGroupId == groupId;
+    
+    // If leaving current, stop listening first
+    if (isCurrent) {
+      _membersSubscription?.cancel();
+      _membersSubscription = null;
+    }
+    
+    await _syncService.leaveGroup(groupId);
+    
+    _myGroups = _myGroups.where((g) => g.id != groupId).toList();
+    await StorageService.saveMyFamilies(_myGroups);
+    
+    if (isCurrent) {
+        if (_myGroups.isNotEmpty) {
+          await _setCurrentGroupInternal(_myGroups.first.id);
+        } else {
+          _currentGroupId = null;
+          await StorageService.saveActiveFamilyId(null);
+          _members = [];
+          await StorageService.saveMembers([]);
+          notifyListeners();
+        }
+    } else {
+       notifyListeners();
+    }
+  }
+
+  Future<void> deleteGroup(String groupId) async {
+    final isCurrent = _currentGroupId == groupId;
+    
+    // Find family safely
+    final family = _myGroups.where((g) => g.id == groupId).firstOrNull;
+    if (family == null) return;
+    
+    // Check ownership
+    if (family.createdBy != _authService.currentUser?.uid) {
+       throw Exception("Vous n'êtes pas le créateur de cet espace.");
+    }
+
+    try {
+      if (isCurrent) {
+         _membersSubscription?.cancel();
+         _membersSubscription = null;
+      }
+
+      await _syncService.deleteGroup(groupId);
+      
+      // Local clean up
+      _myGroups = _myGroups.where((g) => g.id != groupId).toList();
+      await StorageService.saveMyFamilies(_myGroups);
+
+      if (isCurrent) {
+          if (_myGroups.isNotEmpty) {
+            // Prefer a visible group if possible
+            final visible = _myGroups.where((g) => !g.isPersonal).firstOrNull;
+            if (visible != null) {
+               await _setCurrentGroupInternal(visible.id);
+            } else {
+               await _setCurrentGroupInternal(_myGroups.first.id);
+            }
+          } else {
+            _currentGroupId = null;
+            await StorageService.saveActiveFamilyId(null);
+            _members = [];
+            await StorageService.saveMembers([]);
+            notifyListeners();
+          }
+      } else {
+         notifyListeners();
+      }
+    } catch (e) {
+      debugPrint("Error deleting group: $e");
+      rethrow;
+    }
+  }
+
+  Future<void> deleteAccount() async {
+    final user = _authService.currentUser;
+    if (user == null) return;
+    
+    try {
+      // 1. Iterate all groups to Clean up Firestore
+      final groups = List<Family>.from(_myGroups);
+      
+      for (final group in groups) {
+          if (group.createdBy == user.uid) {
+             // Delete owned group
+             try {
+                // Determine if it's a personal group or shared
+                // Regardless, delete it.
+                await _syncService.deleteGroup(group.id);
+             } catch (e) {
+                debugPrint("Error deleting group ${group.id}: $e");
+             }
+          } else {
+             // Leave shared group
+             try {
+                await _syncService.leaveGroup(group.id);
+                // Also try to delete my member document from that group to be clean
+                // families/{groupId}/members/{uid}
+                try {
+                   await FirebaseFirestore.instance
+                       .collection('families')
+                       .doc(group.id)
+                       .collection('members')
+                       .doc(user.uid)
+                       .delete();
+                } catch (_) {}
+             } catch (e) {
+                debugPrint("Error leaving group ${group.id}: $e");
+             }
+          }
+      }
+      
+      // 2. Clear local data
+      await resetApp();
+      
+      // 3. Sign out (and ideally delete auth user if supported)
+      try {
+        await user.delete();
+      } catch (e) {
+        debugPrint("Error deleting auth user: $e");
+        await _authService.signOut();
+      }
+
+    } catch (e) {
+        debugPrint("Error deleting account: $e");
+        rethrow;
+    }
   }
 
   Future<void> refreshData() async {
-    _isSyncing = true;
+    // Mostly handled by streams, but can force check
     notifyListeners();
-    try {
-      if (_family != null) {
-        // Reload family info
-        final freshFamily = await _syncService.getFamily();
-        if (freshFamily != null) {
-          _family = freshFamily;
-          await StorageService.saveFamilyId(_family!.id);
+  }
+
+  // ========== LISTENERS ==========
+
+  void _startListeningToGroups() {
+    _groupsSubscription?.cancel();
+    _groupsSubscription = _syncService.listenToUserGroups().listen((remoteGroups) {
+        // Always update, even if empty (e.g. all groups deleted)
+        _myGroups = remoteGroups;
+        StorageService.saveMyFamilies(_myGroups);
+        
+        // If current group was deleted remotely
+        if (_currentGroupId != null && _currentGroupId != 'all' && !_myGroups.any((g) => g.id == _currentGroupId)) {
+            if (_myGroups.isNotEmpty) {
+                _setCurrentGroupInternal(_myGroups.first.id);
+            } else {
+                _currentGroupId = null;
+                StorageService.saveActiveFamilyId(null);
+                _members = _ensureCurrentUserInList([]); // Keep Moi
+                StorageService.saveMembers(_members);
+            }
         }
-        // Restart listeners to ensure fresh streams
-        _startListening();
-      }
-    } finally {
-      _isSyncing = false;
+        notifyListeners();
+    });
+  }
+
+  Future<void> _startListeningToMembers([String? groupId]) async {
+    // Cancel existing
+    await _membersSubscription?.cancel();
+    _membersSubscription = null;
+    
+    for (final sub in _allMembersSubscriptions) {
+      await sub.cancel();
+    }
+    _allMembersSubscriptions.clear();
+    _cachedMembersByGroup.clear();
+
+    final targetGroupId = groupId ?? _currentGroupId;
+
+    if (targetGroupId == 'all') {
+       if (_myGroups.isEmpty) {
+          _members = _ensureCurrentUserInList([]);
+          notifyListeners();
+          return;
+       }
+       
+       for (final group in _myGroups) {
+          final sub = _syncService.listenToMembers(group.id).listen((members) {
+             _cachedMembersByGroup[group.id] = members;
+             _mergeAndSetAllMembers();
+          });
+          _allMembersSubscriptions.add(sub);
+       }
+    } else if (targetGroupId != null) {
+       _membersSubscription = _syncService.listenToMembers(targetGroupId).listen(
+        (remoteMembersList) {
+            _processSingleGroupMembers(remoteMembersList);
+        },
+        onError: (e) => debugPrint('Members stream error: $e'),
+      );
+    } else {
+      _members = _ensureCurrentUserInList([]);
       notifyListeners();
     }
   }
 
-  void _startListening() {
-    _stopListening();
+  void _mergeAndSetAllMembers() {
+    final allMembers = _cachedMembersByGroup.values.expand((x) => x).toList();
+    final currentUserId = _authService.currentUser?.uid;
+    final profileId = _currentUserProfile?.id;
 
-    _membersSubscription = _syncService.listenToMembers().listen(
-      (remoteMembersList) {
-        if (remoteMembersList.isNotEmpty) {
-          final currentUserId = _authService.currentUser?.uid;
+    final uniqueMembers = <String, Member>{};
+    for (final m in allMembers) {
+       // Filter restricted profiles
+       if (currentUserId != null && !m.canView(currentUserId)) continue;
+       
+       // Skip current user entries here — _ensureCurrentUserInList handles "Moi"
+       if (m.id == currentUserId) continue;
+       if (profileId != null && m.id == profileId) continue;
+       if (!uniqueMembers.containsKey(m.id)) {
+         uniqueMembers[m.id] = m;
+       }
+    }
+    
+    var processed = uniqueMembers.values.toList();
+    _members = _ensureCurrentUserInList(processed);
+    notifyListeners();
+  }
 
-          // FILTER: Only show Shared members (ownerId == null) OR Private members owned by ME.
-          final filteredList = remoteMembersList.where((m) {
-             return m.ownerId == null || (currentUserId != null && m.ownerId == currentUserId);
+  void _processSingleGroupMembers(List<Member> remoteMembersList) {
+      final currentUserId = _authService.currentUser?.uid;
+      List<Member> processedMembers = [];
+      
+      if (remoteMembersList.isNotEmpty) {
+         // Deduplicate by ID immediately
+         final uniqueMap = <String, Member>{};
+         for (final m in remoteMembersList) {
+            uniqueMap[m.id] = m;
+         }
+                  final filtered = uniqueMap.values.where((m) {
+             if (currentUserId == null) return m.ownerId == null;
+             return m.canView(currentUserId);
           }).toList();
+         processedMembers = filtered.toList();
+      }
+      
+      _members = _ensureCurrentUserInList(processedMembers);
+      StorageService.saveMembers(_members);
+      notifyListeners();
+  }
 
-          // Identify the current local owner ID to preserve 'isOwner' status
-          final currentOwner = _members.where((m) => m.isOwner).firstOrNull;
-          final ownerId = currentOwner?.id;
+  List<Member> _ensureCurrentUserInList(List<Member> list) {
+    final currentUserId = _authService.currentUser?.uid;
+    if (currentUserId == null) return list;
 
-          _members = filteredList.map((remoteMember) {
-             if (ownerId != null) {
-               if (remoteMember.id == ownerId) {
-                 return remoteMember.copyWith(isOwner: true);
-               } else {
-                 return remoteMember.copyWith(isOwner: false);
-               }
-             }
-             return remoteMember.copyWith(isOwner: remoteMember.id == ownerId);
-          }).toList();
+    // Determine the canonical profile for "Moi".
+    // Use the locally cached profile (most up-to-date), ensuring its ID
+    // is the Firebase UID (fixes legacy profiles created with uuid.v4()).
+    Member canonicalProfile;
+    if (_currentUserProfile != null) {
+        // Force the ID to be the Firebase UID, even if it was a random UUID
+        canonicalProfile = _currentUserProfile!.id == currentUserId
+            ? _currentUserProfile!
+            : _currentUserProfile!.copyWith(id: currentUserId);
+    } else {
+        canonicalProfile = Member(
+          id: currentUserId,
+          name: "Moi",
+          gradient: 'from-purple-400 to-purple-600',
+          isOwner: true, 
+        );
+    }
 
-          StorageService.saveMembers(_members);
-          notifyListeners();
-        }
-      },
-      onError: (e) => debugPrint('Members stream error: $e'),
-    );
+    // Also track the old profile ID if it differs (legacy random UUID)
+    final oldProfileId = _currentUserProfile?.id;
+    
+    // Strip ALL entries that represent the current user:
+    //   - by Firebase UID
+    //   - by the cached profile's (possibly different) ID
+    //   - by isOwner flag from the same user
+    final filtered = list.where((m) {
+        if (m.id == currentUserId) return false;
+        if (oldProfileId != null && m.id == oldProfileId) return false;
+        return true;
+    }).toList();
 
-    _groupsSubscription = _syncService.listenToGroups().listen(
-      (remoteGroupsList) {
-        if (remoteGroupsList.isNotEmpty) {
-          final currentUserId = _authService.currentUser?.uid;
+    // Deduplicate remaining by ID
+    final uniqueMap = {for (var m in filtered) m.id: m};
 
-          // FILTER: Only show Shared groups (ownerId == null) OR Private groups owned by ME.
-          _groups = remoteGroupsList.where((g) {
-             return g.ownerId == null || (currentUserId != null && g.ownerId == currentUserId);
-          }).toList();
+    // Insert exactly ONE canonical "Moi" entry
+    uniqueMap[currentUserId] = canonicalProfile;
+    
+    final result = uniqueMap.values.toList();
+    
+    // Sort: Moi first, then alphabetical
+    result.sort((a, b) {
+       if (a.id == currentUserId) return -1;
+       if (b.id == currentUserId) return 1;
+       return a.name.compareTo(b.name);
+    });
 
-          StorageService.saveGroups(_groups);
-          notifyListeners();
-        }
-      },
-      onError: (e) => debugPrint('Groups stream error: $e'),
-    );
+    return result;
   }
 
   void _stopListening() {
@@ -325,64 +719,55 @@ class AppState extends ChangeNotifier with MemberManager, GroupManager {
     notifyListeners();
   }
 
-  // ========== DATA EXPORT / IMPORT ==========
-
-  String exportData() {
-    final data = {
-      'version': 1,
-      'timestamp': DateTime.now().toIso8601String(),
-      'members': _members.map((m) => m.toJson()).toList(),
-      'groups': _groups.map((g) => g.toJson()).toList(),
-    };
-    return jsonEncode(data);
-  }
-
-  Future<void> importData(String jsonString) async {
-    try {
-      final data = jsonDecode(jsonString) as Map<String, dynamic>;
-      
-      // Basic validation
-      if (!data.containsKey('members') || !data.containsKey('groups')) {
-        throw const FormatException('Format de données invalide');
-      }
-
-      final List<dynamic> membersJson = data['members'];
-      final List<dynamic> groupsJson = data['groups'];
-
-      final newMembers = membersJson.map((m) => Member.fromJson(m)).toList();
-      final newGroups = groupsJson.map((g) => MemberGroup.fromJson(g)).toList();
-
-      // Update state
-      _members = newMembers;
-      _groups = newGroups;
-      
-      // Save to persistence
-      await StorageService.saveMembers(_members);
-      await StorageService.saveGroups(_groups);
-      
-      // If synced, ensure cloud is updated
-      if (_family != null) {
-         await _syncService.uploadAllMembers(_members);
-         await _syncService.uploadAllGroups(_groups);
-      }
-
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error importing data: $e');
-      rethrow; 
-    }
-  }
-
   // ========== RESET ==========
 
   Future<void> resetApp() async {
     _stopListening();
     await StorageService.clearAllData();
     _members = [];
-    _groups = [];
-    _family = null;
+    _myGroups = [];
+    _currentGroupId = null;
     _themeMode = AppThemeMode.light;
     _accentColor = AccentColor.purple;
     notifyListeners();
+  }
+  // ========== DATA MANAGEMENT ==========
+
+  String exportData() {
+    final data = {
+      'members': _members.map((m) => m.toJson()).toList(),
+      'groups': _myGroups.map((g) => g.toJson()).toList(),
+      'themeMode': _themeMode.index,
+      'accentColor': _accentColor.index,
+    };
+    return jsonEncode(data);
+  }
+
+  Future<void> importData(String jsonString) async {
+    try {
+      final data = jsonDecode(jsonString);
+      
+      if (data['members'] != null) {
+        _members = (data['members'] as List).map((m) => Member.fromJson(m)).toList();
+        await StorageService.saveMembers(_members);
+      }
+      
+      if (data['groups'] != null) {
+        // We need to be careful with IDs
+        final groups = (data['groups'] as List).map((g) => Family.fromJson(g['id'], g)).toList();
+        _myGroups = groups;
+        await StorageService.saveMyFamilies(_myGroups);
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error importing data: $e');
+      rethrow;
+    }
+  }
+
+  String _generateInviteCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    return List.generate(6, (index) => chars[(DateTime.now().microsecondsSinceEpoch * (index + 1)) % chars.length]).join();
   }
 }

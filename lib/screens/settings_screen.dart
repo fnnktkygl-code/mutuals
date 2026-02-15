@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../services/app_state.dart';
-import '../services/share_service.dart';
-import 'package:share_plus/share_plus.dart';
+
 import '../widgets/glass_card.dart';
 import '../theme/app_theme.dart';
 import 'onboarding_screen.dart';
@@ -138,7 +137,59 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
             ),
-             const SizedBox(height: 12),
+            const SizedBox(height: 32),
+
+            // Filou Account Prompt
+            _buildSectionTitle(context, '🐼 Sécurité'),
+            const SizedBox(height: 12),
+            GlassCard(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: context.semantic.mascotSurface,
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Center(
+                      child: Text('🐼', style: TextStyle(fontSize: 28)),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Sauvegarde ton compte !',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: context.semantic.mascot,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Connecte Google ou Apple pour ne rien perdre.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: context.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.arrow_forward_ios, size: 14, color: context.textTertiary),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // About Section
+            _buildSectionTitle(context, 'ℹ️ À propos'),
+            const SizedBox(height: 12),
             GlassCard(
               padding: const EdgeInsets.all(16),
               onTap: () async {
@@ -195,97 +246,6 @@ class SettingsScreen extends StatelessWidget {
                 ],
               ),
             ),
-            // Share Section
-            _buildSectionTitle(context, '📤 Partage'),
-            const SizedBox(height: 12),
-            GlassCard(
-              padding: const EdgeInsets.all(16),
-              onTap: () async {
-                await ShareService.shareMemberSummary(appState.members);
-              },
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.share,
-                    color: context.accent,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Text(
-                    'Partager le récap (WhatsApp)',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: context.accent,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // Data Management Section
-            _buildSectionTitle(context, '💾 Données'),
-            const SizedBox(height: 12),
-            GlassCard(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  // Export
-                  InkWell(
-                    onTap: () async {
-                      final json = appState.exportData();
-                      await Share.share(json, subject: 'Famille.io Config');
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.upload_file, color: context.accent, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Exporter la configuration',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: context.textColor,
-                              ),
-                            ),
-                          ),
-                          Icon(Icons.ios_share, color: context.textTertiary, size: 16),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const Divider(height: 24),
-                  // Import
-                  InkWell(
-                    onTap: () => _showImportDialog(context, appState),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8.0),
-                      child: Row(
-                        children: [
-                          Icon(Icons.download_for_offline, color: context.accent, size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Importer une configuration',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: context.textColor,
-                              ),
-                            ),
-                          ),
-                          Icon(Icons.arrow_forward_ios, color: context.textTertiary, size: 16),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
             
             const SizedBox(height: 48),
             
@@ -296,19 +256,45 @@ class SettingsScreen extends StatelessWidget {
               child: TextButton(
                 onPressed: () => _showResetDialog(context, appState),
                 child: Text(
-                  'Réinitialiser l\'application',
+                  'Réinitialiser l\'application (Local)',
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: AccentColor.red.color,
+                    color: context.textTertiary,
                   ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Center(
+              child: TextButton(
+                onPressed: () => _showDeleteAccountDialog(context, appState),
+                style: TextButton.styleFrom(
+                  foregroundColor: context.colors.error,
+                  backgroundColor: context.colors.error.withValues(alpha: 0.1),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.delete_forever, size: 16, color: context.colors.error),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Supprimer mon compte',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: context.colors.error,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
             Center(
               child: Text(
-                'Famille.io v4.0 (Theme System)',
+                'Mutuals v1.0 — Made with 🐼 by Filou',
                 style: TextStyle(
                   fontSize: 12,
                   color: context.textTertiary,
@@ -319,6 +305,60 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  // ...
+
+  Future<void> _showDeleteAccountDialog(BuildContext context, AppState appState) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Supprimer mon compte'),
+        content: const Text(
+            '⚠️ Attention : Cette action est irréversible.\n\n'
+            '• Vous serez retiré de tous les espaces partagés.\n'
+            '• Vos espaces créés seront supprimés.\n'
+            '• Vos données personnelles seront effacées.\n\n'
+            'Voulez-vous vraiment continuer ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(
+              foregroundColor: context.colors.error,
+            ),
+            child: const Text('Supprimer définitivement'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      // Second confirmation? Maybe not needed for now, but safer.
+      // Let's just proceed.
+      try {
+        await appState.deleteAccount();
+        if (context.mounted) {
+           Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => const OnboardingScreen(),
+            ),
+          );
+           ScaffoldMessenger.of(context).showSnackBar(
+             const SnackBar(content: Text('Compte supprimé avec succès.')),
+           );
+        }
+      } catch (e) {
+        if (context.mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(content: Text('Erreur: $e')),
+           );
+        }
+      }
+    }
   }
 
   Widget _buildSectionTitle(BuildContext context, String title) {
@@ -458,65 +498,5 @@ class SettingsScreen extends StatelessWidget {
       }
     }
   }
-  Future<void> _showImportDialog(BuildContext context, AppState appState) async {
-    final controller = TextEditingController();
-    
-    await showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Importer une configuration'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'Collez le code de configuration (JSON) ci-dessous. \n⚠️ Ceci remplacera vos données actuelles.',
-              style: TextStyle(fontSize: 13),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: controller,
-              maxLines: 5,
-              decoration: const InputDecoration(
-                hintText: 'Collez le code ici...',
-                border: OutlineInputBorder(),
-                filled: true,
-              ),
-              style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
-          ),
-          FilledButton(
-            onPressed: () async {
-              try {
-                final json = controller.text.trim();
-                if (json.isEmpty) return;
-                
-                Navigator.pop(context); // Close dialog
-                
-                await appState.importData(json);
-                
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('✅ Importation réussie !')),
-                  );
-                }
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('❌ Erreur: ${e.toString()}')),
-                  );
-                }
-              }
-            },
-            child: const Text('Importer'),
-          ),
-        ],
-      ),
-    );
-  }
+
 }

@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../services/app_state.dart';
+import '../theme/app_theme.dart';
+import '../theme/design_tokens.dart';
+import '../theme/filou_state.dart';
 import 'home_screen.dart';
-import 'family_management_screen.dart';
+import 'group_settings_screen.dart';
 import '../widgets/custom_avatar.dart';
 import '../widgets/avatar_picker_modal.dart';
 
@@ -162,45 +166,55 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
+        // Filou mascot greeting
         Container(
-          width: 100,
-          height: 100,
+          width: 260,
+          height: 260,
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF9333EA), Color(0xFFEC4899)],
+            gradient: LinearGradient(
+              colors: [
+                context.mascotColors.background,
+                context.mascotColors.background.withValues(alpha: 0.6),
+              ],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
-            borderRadius: BorderRadius.circular(32),
+            borderRadius: BorderRadius.circular(DesignTokens.radiusXl),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF9333EA).withValues(alpha: 0.3),
+                color: context.mascotColors.fur.withValues(alpha: 0.25),
                 blurRadius: 30,
                 offset: const Offset(0, 10),
               ),
             ],
           ),
-          child: const Icon(
-            Icons.auto_awesome,
-            size: 50,
-            color: Colors.white,
+          child: Center(
+            child: Image.asset(
+              FilouState.waving.assetPath,
+              width: 220,
+              height: 220,
+              fit: BoxFit.contain,
+              errorBuilder: (context, error, stackTrace) =>
+                const Text('🐼', style: TextStyle(fontSize: 64)),
+            ),
           ),
         ),
-        const SizedBox(height: 40),
-        const Text(
-          'Famille.io',
-          style: TextStyle(
-            fontSize: 40,
-            fontWeight: FontWeight.w900,
-            color: Color(0xFF1E293B),
-          ),
-        ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 32),
         Text(
-          'Ne vous trompez plus jamais de taille.',
-          style: TextStyle(
-            fontSize: 18,
-            color: Colors.grey[600],
+          'Salut, moi c\'est Filou !',
+          style: GoogleFonts.nunito(
+            fontSize: 32,
+            fontWeight: FontWeight.w800,
+            color: context.colors.onSurface,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Je vais t\'aider à garder les tailles\net les envies de tes proches. 🎁',
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            color: context.textSecondary,
+            height: 1.5,
           ),
           textAlign: TextAlign.center,
         ),
@@ -418,7 +432,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const FamilyManagementScreen(),
+                  builder: (context) => const GroupSettingsScreen(),
                 ),
               );
               if (mounted) {
@@ -431,7 +445,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               }
             },
             icon: const Icon(Icons.group_add),
-            label: const Text('Créer ou rejoindre une famille'),
+            label: const Text('Créer ou rejoindre un espace'),
             style: OutlinedButton.styleFrom(
               foregroundColor: const Color(0xFF1E293B),
               side: const BorderSide(color: Color(0xFF1E293B), width: 2),

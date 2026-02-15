@@ -26,6 +26,6 @@ class ShareService {
     
     final fullText = 'Voici les tailles et envies de la famille :\n\n$summary';
     
-    await Share.share(fullText, subject: 'Famille.io - Récap');
+    await Share.share(fullText, subject: 'Mutuals - Récap');
   }
 }

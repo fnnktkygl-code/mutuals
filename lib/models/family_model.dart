@@ -3,9 +3,12 @@ class Family {
   final String id;
   final String name;
   final String inviteCode;
-  final String createdBy; // Firebase UID
+  final String createdBy;
   final DateTime createdAt;
-  final List<String> memberUids; // Firebase UIDs of family members
+  final List<String> memberUids;
+  final String? emoji; // v2
+  final String? background; // v2
+  final bool isPersonal; // v3
 
   const Family({
     required this.id,
@@ -14,15 +17,22 @@ class Family {
     required this.createdBy,
     required this.createdAt,
     this.memberUids = const [],
+    this.emoji,
+    this.background,
+    this.isPersonal = false,
   });
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'name': name,
       'inviteCode': inviteCode,
       'createdBy': createdBy,
       'createdAt': createdAt.toIso8601String(),
       'memberUids': memberUids,
+      if (emoji != null) 'emoji': emoji,
+      if (background != null) 'background': background,
+      'isPersonal': isPersonal,
     };
   }
 
@@ -36,6 +46,25 @@ class Family {
           ? DateTime.parse(json['createdAt'])
           : DateTime.now(),
       memberUids: List<String>.from(json['memberUids'] ?? []),
+      emoji: json['emoji'],
+      background: json['background'],
+      isPersonal: json['isPersonal'] ?? false,
+    );
+  }
+
+  factory Family.fromMap(Map<String, dynamic> map) {
+    return Family(
+      id: map['id'] ?? '',
+      name: map['name'] ?? '',
+      inviteCode: map['inviteCode'] ?? '',
+      createdBy: map['createdBy'] ?? '',
+      createdAt: map['createdAt'] != null
+          ? DateTime.parse(map['createdAt'])
+          : DateTime.now(),
+      memberUids: List<String>.from(map['memberUids'] ?? []),
+      emoji: map['emoji'],
+      background: map['background'],
+      isPersonal: map['isPersonal'] ?? false,
     );
   }
 
@@ -46,6 +75,9 @@ class Family {
     String? createdBy,
     DateTime? createdAt,
     List<String>? memberUids,
+    String? emoji,
+    String? background,
+    bool? isPersonal,
   }) {
     return Family(
       id: id ?? this.id,
@@ -54,6 +86,9 @@ class Family {
       createdBy: createdBy ?? this.createdBy,
       createdAt: createdAt ?? this.createdAt,
       memberUids: memberUids ?? this.memberUids,
+      emoji: emoji ?? this.emoji,
+      background: background ?? this.background,
+      isPersonal: isPersonal ?? this.isPersonal,
     );
   }
 }

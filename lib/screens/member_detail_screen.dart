@@ -11,20 +11,23 @@ import '../models/member.dart';
 import '../models/monthly_wish.dart';
 import '../models/fit_preference.dart';
 import '../theme/app_theme.dart';
+import '../theme/filou_state.dart';
 import '../widgets/fit_preference_selector.dart';
 import '../widgets/avatar_editor_section.dart';
 import '../widgets/size_widgets.dart';
 import '../widgets/monthly_wish_section.dart';
 import '../widgets/address_section.dart';
-import '../widgets/tags_section.dart';
 import '../widgets/birthday_section.dart';
 import '../widgets/wardrobe_section.dart';
-import '../widgets/member_group_selector.dart';
+// member_group_selector.dart removed
 import '../widgets/glass_card.dart';
 import '../widgets/share_profile_sheet.dart';
+import '../widgets/restricted_access_sheet.dart';
 import '../widgets/member_avatar.dart';
 import '../utils/date_utils.dart' as date_utils;
+
 import '../utils/sizing_constants.dart';
+
 class MemberDetailScreen extends StatefulWidget {
   final String? memberId;
 
@@ -45,7 +48,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
   // Tutorial Keys
   final GlobalKey _sizesKey = GlobalKey();
-  // removed unused keys
 
   late TextEditingController _nameController;
   late TextEditingController _relationshipController;
@@ -67,20 +69,13 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
         name: '',
         gradient: 'from-purple-400 to-purple-600',
         fitPreference: FitPreference.regular,
-        groupIds: appState.groups.isNotEmpty ? [appState.groups.first.id] : [],
+        // No groupIds anymore
       );
       _isEditing = true;
     } else {
       _member = appState.getMember(widget.memberId!)!;
       // Only show tutorial if we are viewing an existing member
       WidgetsBinding.instance.addPostFrameCallback((_) => _showTutorial());
-    }
-
-    // Load private group assignments
-    if (widget.memberId != null) {
-      final privateGroups = appState.getMemberGroupIds(widget.memberId!);
-      // Override the member's groupIds with the private one for display/editing
-      _member = _member.copyWith(groupIds: privateGroups);
     }
 
     _nameController = TextEditingController(text: _member.name);
@@ -111,10 +106,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
 
     // Check permissions
     final currentUser = appState.authService.currentUser;
-    // Can edit if:
-    // 1. It is the "Moi" profile (isOwner=true)
-    // 2. It is a private contact I created (ownerId == myUid)
-    // 3. (Legacy) It's a shared profile but I am the "Mom" (maybe? for now strict)
     final canEditProfile = _member.isOwner || (currentUser != null && _member.ownerId == currentUser.uid);
     
     // Force read-only if not allowed
@@ -124,20 +115,22 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   }
 
   void _showTutorial() async {
-    // Basic check + context mounted check
     if (await StorageService.hasShownMemberTutorial()) return;
     if (!mounted) return;
 
-    // Wait for widgets to render positions
     await Future.delayed(const Duration(milliseconds: 500));
     if (!mounted) return;
 
     final targets = [
       TutorialService.createTarget(
         key: _sizesKey,
-        title: "Mode Story",
-        description: "Swipez vers la droite pour voir les tailles et les envies !",
+        title: "Mode Story \u{1F4CF}",
+        description: "Swipe vers la droite pour découvrir les tailles, les envies et l'historique de ce membre !",
         align: ContentAlign.bottom,
+        filou: FilouState.measuring,
+        stepNumber: 1,
+        totalSteps: 1,
+        isLast: true,
       ),
     ];
 
@@ -162,21 +155,12 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
   Future<void> _saveMember() async {
     final appState = context.read<AppState>();
     
-    // Save Private Group Assignments first (always allowed)
-    if (_member.id.isNotEmpty && _member.groupIds.isNotEmpty) {
-      await appState.updateMemberGroups(_member.id, _member.groupIds);
-    }
-
     // Permission Check
     final currentUser = appState.authService.currentUser;
     final canEditProfile = _member.isOwner || (currentUser != null && _member.ownerId == currentUser.uid);
 
     if (!canEditProfile) {
-       // If I can't edit profile, I just save groups (done above) and exit
        if (mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(content: Text('Groupes mis à jour')),
-         );
          Navigator.of(context).pop();
        }
        return;
@@ -207,7 +191,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
          updatedHistory.add(MonthlyWish(monthKey: currentKey, text: wishText));
        }
     } else {
-      // Remove wish if text is empty
       if (existingIndex >= 0) {
         updatedHistory.removeAt(existingIndex);
       }
@@ -215,6 +198,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     _member = _member.copyWith(wishHistory: updatedHistory);
 
     if (widget.memberId == null) {
+      // Adding new member
       await appState.addMember(_member);
       // Give time for confetti
       await Future.delayed(const Duration(seconds: 1));
@@ -259,7 +243,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
     }
   }
 
-  /// Callback used by all child widgets to update member state
   void _updateMember(Member updated) {
     setState(() => _member = updated);
   }
@@ -334,7 +317,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
         children: [
           Text("STYLE & SIZES", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 2, color: context.colors.outline)),
           const SizedBox(height: 16),
-          // key: _sizesKey, // Tutorial target handled in FitPreferenceSelector via key if needed, or wrap column
           Container(key: _sizesKey, child: FitPreferenceSelector(
             member: _member,
             isEditing: _isEditing,
@@ -363,12 +345,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
             member: _member,
             isEditing: _isEditing,
             wishController: _wishController,
-          ),
-          const SizedBox(height: 24),
-          TagsSection(
-            member: _member,
-            isEditing: _isEditing,
-            onMemberChanged: _updateMember,
           ),
           const SizedBox(height: 24),
           _buildAddressSection(),
@@ -421,12 +397,10 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       ),
     );
   }
-  // ========== INLINE WIDGETS (too tightly coupled to extract) ==========
-
+  
   Widget _buildAppBar(BuildContext context) {
     final appState = context.read<AppState>();
     final currentUser = appState.authService.currentUser;
-    // Can edit if owner (Moi), or if I created this private contact
     final canEditProfile = _member.isOwner || (currentUser != null && _member.ownerId == currentUser.uid);
 
     return Padding(
@@ -437,7 +411,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
           IconButton(
             onPressed: () {
               if (_isEditing && widget.memberId != null) {
-                // If cancelling edit, revert to read-only
                 setState(() => _isEditing = false);
               } else {
                 Navigator.of(context).pop();
@@ -449,7 +422,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
           
           Row(
             children: [
-              // Share button always visible (except if new?)
               if (widget.memberId != null)
                 IconButton(
                   onPressed: () => ShareProfileSheet.show(context, _member),
@@ -457,9 +429,15 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                   tooltip: 'Partager le profil',
                 ),
                 
+              if (widget.memberId != null && currentUser != null && _member.ownerId == currentUser.uid)
+                IconButton(
+                  onPressed: () => RestrictedAccessSheet.show(context, _member),
+                  icon: const Icon(Icons.security_rounded),
+                  tooltip: 'Gérer l\'accès',
+                ),
+                
               const SizedBox(width: 8),
 
-              // Edit button only if allowed
               if (!_isEditing && canEditProfile)
                 IconButton(
                   onPressed: () => setState(() => _isEditing = true),
@@ -467,11 +445,9 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
                   tooltip: 'Modifier',
                 ),
 
-              // Save button (or Check)
               if (_isEditing || !canEditProfile)
                 IconButton(
                   onPressed: _saveMember, 
-                  // If I can't edit profile, this button just saves group changes and exits
                   icon: Icon(canEditProfile ? Icons.save : Icons.check),
                   tooltip: canEditProfile ? 'Sauver' : 'OK',
                   style: IconButton.styleFrom(
@@ -485,6 +461,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       ),
     );
   }
+  
   Widget _buildHeader() {
     if (_isEditing) {
       return GlassCard(
@@ -540,12 +517,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
             ),
             const SizedBox(height: 16),
             const SizedBox(height: 16),
-            if (!_member.isOwner)
-              MemberGroupSelector(
-                member: _member,
-                onMemberChanged: _updateMember,
-              ),
-            const SizedBox(height: 24),
+            // GroupSelector Was Here
             const Divider(),
             const SizedBox(height: 16),
             Text(
@@ -560,7 +532,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
               ),
               child: SwitchListTile(
                 title: Text('Afficher l\'âge', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.colors.onSurface)),
-                subtitle: Text('Visible par le groupe Famille', style: TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant)),
+                subtitle: Text('Visible par le Cercle', style: TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant)),
                 value: _member.shareAccess['age'] ?? true,
                 onChanged: (bool value) {
                   final newAccess = Map<String, bool>.from(_member.shareAccess);
@@ -578,7 +550,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
               ),
               child: SwitchListTile(
                 title: Text('Afficher les tailles', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: context.colors.onSurface)),
-                subtitle: Text('Visible par le groupe Famille', style: TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant)),
+                subtitle: Text('Visible par le Cercle', style: TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant)),
                 value: _member.shareAccess['sizes'] ?? true,
                 onChanged: (bool value) {
                   final newAccess = Map<String, bool>.from(_member.shareAccess);
@@ -618,7 +590,7 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
               ),
               child: Text(
                 (_member.relationship.toLowerCase() == 'moi' && !_member.isOwner)
-                    ? 'FAMILLE'
+                    ? 'PARTAGÉ'
                     : _member.relationship.toUpperCase(),
                 style: TextStyle(
                   fontSize: 12,
@@ -682,9 +654,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
       );
     }
   }
-
-
-
 
   Widget _buildAddressSection() {
     return AddressSection(

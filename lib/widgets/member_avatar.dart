@@ -19,7 +19,7 @@ class MemberAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     // Custom avatar with character + background color
     if (member.avatarType == 'custom' && member.avatarCharacterId != null) {
-      return _buildCustomAvatar();
+      return _buildCustomAvatar(context);
     } else if (member.avatarType == 'image' && member.avatarValue.isNotEmpty) {
       return Container(
         width: size,
@@ -110,9 +110,21 @@ class MemberAvatar extends StatelessWidget {
     }
   }
 
-  Widget _buildCustomAvatar() {
+  Widget _buildCustomAvatar(BuildContext context) {
     final bgColor = _parseColor(member.avatarBackgroundColor ?? '#6366F1');
     
+    // Tinting logic for default avatars (silhouettes)
+    Color? color;
+    if (member.avatarCharacterId != null && member.avatarCharacterId!.startsWith('default_')) {
+       final isTransparent = bgColor.a == 0;
+       final isDarkBg = !isTransparent && bgColor.computeLuminance() < 0.5;
+       if (isTransparent) {
+         color = Theme.of(context).colorScheme.onSurface;
+       } else if (isDarkBg) {
+         color = Colors.white.withValues(alpha: 0.9);
+       }
+    }
+
     return Container(
       width: size,
       height: size,
@@ -135,8 +147,11 @@ class MemberAvatar extends StatelessWidget {
       ),
       child: ClipOval(
         child: Image.asset(
-          'assets/avatars/${member.avatarCharacterId}.png',
+          member.avatarCharacterId != null && member.avatarCharacterId!.startsWith('default_') 
+              ? 'assets/avatars/defaults/${member.avatarCharacterId}.png'
+              : 'assets/avatars/${member.avatarCharacterId}.png',
           fit: BoxFit.cover,
+          color: color,
           errorBuilder: (context, error, stackTrace) {
             return Icon(
               Icons.person,

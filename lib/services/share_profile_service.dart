@@ -96,7 +96,7 @@ class ShareProfileService {
     }
     
     buffer.writeln('---');
-    buffer.writeln('Partagé via Famille.io 👨‍👩‍👧‍👦');
+    buffer.writeln('Partagé via Mutuals 👨‍👩‍👧‍👦');
     
     return buffer.toString();
   }
@@ -106,7 +106,7 @@ class ShareProfileService {
     final text = generateShareText(member, mode);
     await Share.share(
       text,
-      subject: 'Profil de ${member.name} - Famille.io',
+      subject: 'Profil de ${member.name} - Mutuals',
     );
   }
   
