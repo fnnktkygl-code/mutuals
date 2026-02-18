@@ -446,7 +446,6 @@ class _EventsScreenState extends State<EventsScreen> with SingleTickerProviderSt
             child: Row(
               children: [
                 _buildFilterChip('Tous', null),
-                // Groups filter removed as we only show current group members
               ],
             ),
           ),
