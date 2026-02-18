@@ -63,7 +63,7 @@ class _EventsScreenState extends State<EventsScreen> with SingleTickerProviderSt
   String? _selectedGroupId;
   DateTime? _selectedDate;
 
-  // Fixed holidays — uses current year for correct daysUntil calculation
+  // Holidays — uses current year with dynamically computed dates
   static List<CalendarEvent> get _holidays {
     final year = DateTime.now().year;
     return [
@@ -86,7 +86,7 @@ class _EventsScreenState extends State<EventsScreen> with SingleTickerProviderSt
       CalendarEvent(
         title: 'Fête des Mères',
         subtitle: 'Gâtez-la ! 💐',
-        date: DateTime(year, 5, 26),
+        date: _lastSundayOfMay(year),
         type: EventType.mothersDay,
         icon: Icons.local_florist,
         color: Colors.purple,
@@ -94,7 +94,7 @@ class _EventsScreenState extends State<EventsScreen> with SingleTickerProviderSt
       CalendarEvent(
         title: 'Fête des Pères',
         subtitle: 'Pensez à lui ! 👔',
-        date: DateTime(year, 6, 16),
+        date: _thirdSundayOfJune(year),
         type: EventType.fathersDay,
         icon: Icons.sports_golf,
         color: Colors.blue,
@@ -108,6 +108,21 @@ class _EventsScreenState extends State<EventsScreen> with SingleTickerProviderSt
         color: AccentColor.red.color,
       ),
     ];
+  }
+
+  /// Last Sunday of May (French Mother's Day)
+  static DateTime _lastSundayOfMay(int year) {
+    final lastDay = DateTime(year, 5, 31);
+    final offset = lastDay.weekday % 7; // Sunday = 7, so 7 % 7 = 0
+    return lastDay.subtract(Duration(days: offset));
+  }
+
+  /// Third Sunday of June (French Father's Day)
+  static DateTime _thirdSundayOfJune(int year) {
+    final firstDay = DateTime(year, 6, 1);
+    final daysUntilSunday = (DateTime.sunday - firstDay.weekday) % 7;
+    final firstSunday = firstDay.add(Duration(days: daysUntilSunday));
+    return firstSunday.add(const Duration(days: 14)); // 3rd Sunday
   }
 
   @override
