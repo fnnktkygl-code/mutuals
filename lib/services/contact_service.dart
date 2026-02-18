@@ -50,8 +50,7 @@ class ContactService {
       id: uuid.v4(),
       name: '${contact.name.first} ${contact.name.last}'.trim(),
       relationship: '',
-      // groupIds: defaultGroupId != null ? [defaultGroupId] : [],
-      gradient: 'from-purple-400 to-purple-600', // Default gradient
+      gradient: 'from-purple-400 to-purple-600',
       fitPreference: FitPreference.regular,
       isOwner: false,
       tops: const <WardrobeItem>[],

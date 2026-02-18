@@ -3,7 +3,6 @@ import 'package:uuid/uuid.dart';
 import '../models/member.dart';
 import '../models/fit_preference.dart';
 import '../models/family_model.dart';
-// member_group.dart removed
 import '../services/storage_service.dart';
 import '../services/notification_service.dart';
 import '../services/sync_service.dart';
@@ -58,7 +57,6 @@ mixin MemberManager on ChangeNotifier {
       fitPreference: FitPreference.regular,
       isOwner: true,
       lastUpdated: DateTime.now(),
-      // groupIds removed
     );
     memberList = [owner];
     currentUserProfile = owner;

@@ -6,7 +6,6 @@ class Member {
   final String id;
   final String name;
   final String relationship;
-  // groupIds removed
   final String gradient;
   final FitPreference fitPreference;
   final bool isOwner;
@@ -73,7 +72,6 @@ class Member {
     this.birthday,
     this.tags = const [],
     this.fitPreference = FitPreference.regular,
-    // groupIds removed
     this.shareAccess = const {'age': true, 'sizes': true},
     this.lastUpdated,
     this.isOwner = false,
@@ -114,8 +112,7 @@ class Member {
       'id': id,
       'name': name,
       'relationship': relationship,
-      // groupIds removed
-      'gradient': gradient, // Kept for backward compatibility
+      'gradient': gradient,
       'fitPreference': fitPreference.toJson(),
       'isOwner': isOwner,
       'tops': tops.map((item) => item.toJson()).toList(),
@@ -147,6 +144,7 @@ class Member {
       if (pickupPointName != null) 'pickupPointName': pickupPointName,
       if (pickupPointAddress != null) 'pickupPointAddress': pickupPointAddress,
       if (ownerId != null) 'ownerId': ownerId,
+      'sharedWith': sharedWith,
     };
   }
 
@@ -195,7 +193,7 @@ class Member {
     if (name.trim().isEmpty) missing.add('Prénom');
     if (birthday == null) missing.add('Anniversaire');
     if (relationship.isEmpty || relationship == 'Membre') missing.add('Relation');
-    if (avatarType == 'gradient' && avatarValue == 'from-purple-400 to-purple-606') missing.add('Avatar');
+    if (avatarType == 'gradient' && avatarValue == 'from-purple-400 to-purple-600') missing.add('Avatar');
     if (generalTopSize.isEmpty) missing.add('Taille haut');
     if (generalBottomSize.isEmpty) missing.add('Taille bas');
     if (generalShoeSize.isEmpty) missing.add('Pointure');
@@ -208,7 +206,6 @@ class Member {
       id: json['id'].toString(),
       name: json['name'] ?? '',
       relationship: json['relationship'] ?? '',
-      // groupIds removed
       gradient: json['gradient'] ?? 'from-purple-400 to-purple-600',
       fitPreference: FitPreference.fromJson(json['fitPreference'] ?? 'regular'),
       isOwner: json['isOwner'] ?? false,
@@ -249,7 +246,6 @@ class Member {
     String? id,
     String? name,
     String? relationship,
-    // groupIds removed
     String? gradient,
     FitPreference? fitPreference,
     bool? isOwner,
@@ -288,7 +284,6 @@ class Member {
       id: id ?? this.id,
       name: name ?? this.name,
       relationship: relationship ?? this.relationship,
-      // groupIds removed
       gradient: gradient ?? this.gradient,
       fitPreference: fitPreference ?? this.fitPreference,
       isOwner: isOwner ?? this.isOwner,
@@ -297,8 +292,8 @@ class Member {
       shoes: shoes ?? this.shoes,
       accessories: accessories ?? this.accessories,
       topBrands: topBrands ?? this.topBrands,
-      bottomBrands: bottomBrands ?? this.bottomBrands, // Fixed potential bug in original copyWith
-      shoeBrands: shoeBrands ?? this.shoeBrands, // Fixed potential bug in original copyWith
+      bottomBrands: bottomBrands ?? this.bottomBrands,
+      shoeBrands: shoeBrands ?? this.shoeBrands,
       
       wishlist: wishlist ?? this.wishlist,
       wishHistory: wishHistory ?? this.wishHistory,

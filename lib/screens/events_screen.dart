@@ -63,49 +63,52 @@ class _EventsScreenState extends State<EventsScreen> with SingleTickerProviderSt
   String? _selectedGroupId;
   DateTime? _selectedDate;
 
-  // Fixed holidays
-  static final List<CalendarEvent> _holidays = [
-    CalendarEvent(
-      title: 'Nouvel An',
-      subtitle: 'Bonne année ! 🎊',
-      date: DateTime(2024, 1, 1),
-      type: EventType.newYear,
-      icon: Icons.celebration,
-      color: Colors.amber,
-    ),
-    CalendarEvent(
-      title: 'Saint-Valentin',
-      subtitle: "Fête des amoureux 💕",
-      date: DateTime(2024, 2, 14),
-      type: EventType.valentines,
-      icon: Icons.favorite,
-      color: Colors.pink,
-    ),
-    CalendarEvent(
-      title: 'Fête des Mères',
-      subtitle: 'Gâtez-la ! 💐',
-      date: DateTime(2024, 5, 26), // Last Sunday of May (approximate)
-      type: EventType.mothersDay,
-      icon: Icons.local_florist,
-      color: Colors.purple,
-    ),
-    CalendarEvent(
-      title: 'Fête des Pères',
-      subtitle: 'Pensez à lui ! 👔',
-      date: DateTime(2024, 6, 16), // Third Sunday of June (approximate)
-      type: EventType.fathersDay,
-      icon: Icons.sports_golf,
-      color: Colors.blue,
-    ),
-    CalendarEvent(
-      title: 'Noël',
-      subtitle: 'Joyeuses fêtes ! 🎄',
-      date: DateTime(2024, 12, 25),
-      type: EventType.christmas,
-      icon: Icons.card_giftcard,
-      color: AccentColor.red.color,
-    ),
-  ];
+  // Fixed holidays — uses current year for correct daysUntil calculation
+  static List<CalendarEvent> get _holidays {
+    final year = DateTime.now().year;
+    return [
+      CalendarEvent(
+        title: 'Nouvel An',
+        subtitle: 'Bonne année ! 🎊',
+        date: DateTime(year, 1, 1),
+        type: EventType.newYear,
+        icon: Icons.celebration,
+        color: Colors.amber,
+      ),
+      CalendarEvent(
+        title: 'Saint-Valentin',
+        subtitle: "Fête des amoureux 💕",
+        date: DateTime(year, 2, 14),
+        type: EventType.valentines,
+        icon: Icons.favorite,
+        color: Colors.pink,
+      ),
+      CalendarEvent(
+        title: 'Fête des Mères',
+        subtitle: 'Gâtez-la ! 💐',
+        date: DateTime(year, 5, 26),
+        type: EventType.mothersDay,
+        icon: Icons.local_florist,
+        color: Colors.purple,
+      ),
+      CalendarEvent(
+        title: 'Fête des Pères',
+        subtitle: 'Pensez à lui ! 👔',
+        date: DateTime(year, 6, 16),
+        type: EventType.fathersDay,
+        icon: Icons.sports_golf,
+        color: Colors.blue,
+      ),
+      CalendarEvent(
+        title: 'Noël',
+        subtitle: 'Joyeuses fêtes ! 🎄',
+        date: DateTime(year, 12, 25),
+        type: EventType.christmas,
+        icon: Icons.card_giftcard,
+        color: AccentColor.red.color,
+      ),
+    ];
+  }
 
   @override
   void initState() {
