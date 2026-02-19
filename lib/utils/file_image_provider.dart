@@ -1,0 +1,3 @@
+// Conditional export: use dart:io File on native, stub on web
+export 'file_image_provider_stub.dart'
+    if (dart.library.io) 'file_image_provider_native.dart';

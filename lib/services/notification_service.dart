@@ -1,7 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -11,6 +11,8 @@ class NotificationService {
   final FlutterLocalNotificationsPlugin notificationsPlugin = FlutterLocalNotificationsPlugin();
 
   Future<void> init() async {
+    if (kIsWeb) return; // Notifications not supported on web
+
     tz.initializeTimeZones();
     
     // Android initialization
@@ -39,7 +41,11 @@ class NotificationService {
   }
 
   Future<void> requestPermissions() async {
-    if (Platform.isIOS) {
+    if (kIsWeb) return; // Not supported on web
+
+    // Use defaultTargetPlatform instead of dart:io Platform for web compatibility
+    final platform = TargetPlatform.values;
+    try {
       await notificationsPlugin
           .resolvePlatformSpecificImplementation<
               IOSFlutterLocalNotificationsPlugin>()
@@ -48,12 +54,13 @@ class NotificationService {
             badge: true,
             sound: true,
           );
-    } else if (Platform.isAndroid) {
+      
       final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
           notificationsPlugin.resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
-
       await androidImplementation?.requestNotificationsPermission();
+    } catch (_) {
+      // Platform implementation not available
     }
   }
 
@@ -62,6 +69,8 @@ class NotificationService {
     required String name,
     required DateTime birthday,
   }) async {
+    if (kIsWeb) return; // Not supported on web
+
     final now = DateTime.now();
     var scheduledDate = DateTime(
       now.year,
@@ -97,10 +106,12 @@ class NotificationService {
   }
 
   Future<void> cancelNotification(String id) async {
+    if (kIsWeb) return;
     await notificationsPlugin.cancel(id: id.hashCode);
   }
 
   Future<void> cancelAll() async {
+    if (kIsWeb) return;
     await notificationsPlugin.cancelAll();
   }
 }

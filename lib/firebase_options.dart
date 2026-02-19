@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart'
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
-      throw UnsupportedError('Web platform is not configured.');
+      return web;
     }
     switch (defaultTargetPlatform) {
       case TargetPlatform.android:
@@ -23,6 +23,15 @@ class DefaultFirebaseOptions {
         );
     }
   }
+
+  static const FirebaseOptions web = FirebaseOptions(
+    apiKey: 'AIzaSyCwa2ToGXYFh9xI413Mt3O6k1NiIQKDSlI',
+    appId: '1:764923695439:web:a1b2c3d4e5f6789035753a',
+    messagingSenderId: '764923695439',
+    projectId: 'famille-io',
+    storageBucket: 'famille-io.firebasestorage.app',
+    authDomain: 'famille-io.firebaseapp.com',
+  );
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyCwa2ToGXYFh9xI413Mt3O6k1NiIQKDSlI',

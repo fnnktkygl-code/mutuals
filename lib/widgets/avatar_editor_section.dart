@@ -1,9 +1,10 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../models/member.dart';
 import '../theme/app_theme.dart';
 import '../widgets/custom_avatar.dart';
 import '../widgets/avatar_picker_modal.dart';
+import '../utils/file_image_provider.dart';
 import 'package:image_picker/image_picker.dart';
 
 /// Avatar type selector and editor (custom, photo)
@@ -148,11 +149,11 @@ class AvatarEditorSection extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 50,
-            backgroundImage: member.avatarValue.isNotEmpty && member.avatarValue.startsWith('/')
-                ? FileImage(File(member.avatarValue))
+            backgroundImage: !kIsWeb && member.avatarValue.isNotEmpty && member.avatarValue.startsWith('/')
+                ? createFileImageProvider(member.avatarValue)
                 : null,
             backgroundColor: context.colors.surfaceContainerHighest,
-            child: member.avatarValue.isEmpty || !member.avatarValue.startsWith('/')
+            child: member.avatarValue.isEmpty || !member.avatarValue.startsWith('/') || kIsWeb
                 ? Icon(Icons.add_a_photo, size: 40, color: context.colors.onSurfaceVariant)
                 : null,
           ),
