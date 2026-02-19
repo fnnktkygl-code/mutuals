@@ -1,24 +1,22 @@
-name: Deploy Web App to GitHub Pages
+name: Build & Deploy Flutter Web App
 
 on:
   push:
     branches: [ main ]
+    paths-ignore:
+      - 'docs/app/**'
   workflow_dispatch:
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: false
+  contents: write
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -33,33 +31,23 @@ jobs:
       - name: Build Flutter Web
         run: flutter build web --release --base-href /mutuals/app/
 
-      - name: Prepare deployment
+      - name: Deploy to docs/app
         run: |
-          # Create deployment directory
-          mkdir -p deploy
+          # Clear old build
+          rm -rf docs/app
 
-          # Copy landing page (docs/) to root of deploy
-          cp -r docs/* deploy/
+          # Copy new build
+          cp -r build/web docs/app
 
-          # Copy Flutter web build to /app/ subdirectory
-          mkdir -p deploy/app
-          cp -r build/web/* deploy/app/
+          # Ensure .nojekyll exists so GitHub Pages serves underscore files
+          touch docs/.nojekyll
+          touch docs/app/.nojekyll
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: deploy
-
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/app docs/.nojekyll
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "chore: deploy Flutter web app [skip ci]"
+          git push
