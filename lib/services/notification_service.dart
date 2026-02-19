@@ -1,7 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -43,9 +43,7 @@ class NotificationService {
   Future<void> requestPermissions() async {
     if (kIsWeb) return; // Not supported on web
 
-    // Use defaultTargetPlatform instead of dart:io Platform for web compatibility
-    final platform = TargetPlatform.values;
-    try {
+    if (defaultTargetPlatform == TargetPlatform.iOS) {
       await notificationsPlugin
           .resolvePlatformSpecificImplementation<
               IOSFlutterLocalNotificationsPlugin>()
@@ -54,13 +52,11 @@ class NotificationService {
             badge: true,
             sound: true,
           );
-      
+    } else if (defaultTargetPlatform == TargetPlatform.android) {
       final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
           notificationsPlugin.resolvePlatformSpecificImplementation<
               AndroidFlutterLocalNotificationsPlugin>();
       await androidImplementation?.requestNotificationsPermission();
-    } catch (_) {
-      // Platform implementation not available
     }
   }
 
