@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../theme/app_theme.dart';
 import '../theme/design_tokens.dart';
@@ -47,7 +48,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: context.colors.surface,
-      body: _buildContent(),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        child: _buildContent(),
+      ),
       bottomNavigationBar: _buildBottomBar(),
     );
   }
@@ -55,15 +59,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildContent() {
     switch (_currentTab) {
       case 0:
-        return const MembersTab();
+        return const MembersTab(key: ValueKey('members'));
       case 1:
-        return const TimelineScreen();
+        return const TimelineScreen(key: ValueKey('timeline'));
       case 2:
-        return const EventsScreen();
+        return const EventsScreen(key: ValueKey('events'));
       case 3:
-        return const SettingsScreen();
+        return const SettingsScreen(key: ValueKey('settings'));
       default:
-        return const MembersTab();
+        return const MembersTab(key: ValueKey('members'));
     }
   }
 
@@ -100,9 +104,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   Widget _buildNavItem(int index, IconData icon, IconData activeIcon, String label) {
     final isSelected = _currentTab == index;
     return GestureDetector(
-      onTap: () => setState(() => _currentTab = index),
+      onTap: () {
+        if (_currentTab != index) {
+          HapticFeedback.selectionClick();
+          setState(() => _currentTab = index);
+        }
+      },
       behavior: HitTestBehavior.opaque,
-      child: Container(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        curve: Curves.easeInOut,
         padding: const EdgeInsets.symmetric(horizontal: DesignTokens.spacingMd, vertical: DesignTokens.spacingSm),
         decoration: isSelected
             ? BoxDecoration(

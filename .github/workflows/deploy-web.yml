@@ -1,0 +1,52 @@
+name: Build & Deploy Flutter Web App
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'docs/app/**'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.32.2'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Build Flutter Web
+        run: flutter build web --release --base-href /mutuals/app/
+
+      - name: Deploy to docs/app
+        run: |
+          # Clear old build
+          rm -rf docs/app
+
+          # Copy new build
+          cp -r build/web docs/app
+
+          # Ensure .nojekyll exists so GitHub Pages serves underscore files
+          touch docs/.nojekyll
+
+      - name: Commit and push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/app docs/.nojekyll
+          git diff --cached --quiet && echo "No changes to commit" && exit 0
+          git commit -m "chore: deploy Flutter web app [skip ci]"
+          git push

@@ -6,7 +6,6 @@ import '../models/family_model.dart';
 
 class StorageService {
   static const String _membersKey = 'famille_io_members';
-  // Legacy _groupsKey removed
   static const String _darkModeKey = 'famille_io_dark_mode';
   static const String _hasOnboardedKey = 'famille_io_has_onboarded';
   static const String _notificationsEnabledKey = 'famille_io_notifications_enabled';

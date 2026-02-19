@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../services/app_state.dart';
 import '../services/update_service.dart';
 
@@ -295,12 +296,18 @@ class SettingsScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Center(
-              child: Text(
-                'Mutuals v1.0 — Made with 🐼 by Filou',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: context.textTertiary,
-                ),
+              child: FutureBuilder<PackageInfo>(
+                future: PackageInfo.fromPlatform(),
+                builder: (context, snapshot) {
+                  final version = snapshot.hasData ? 'v${snapshot.data!.version}' : 'v1.0';
+                  return Text(
+                    'Mutuals $version — Made with 🐼 by Filou',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: context.textTertiary,
+                    ),
+                  );
+                },
               ),
             ),
           ],

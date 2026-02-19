@@ -19,7 +19,6 @@ import '../widgets/monthly_wish_section.dart';
 import '../widgets/address_section.dart';
 import '../widgets/birthday_section.dart';
 import '../widgets/wardrobe_section.dart';
-// member_group_selector.dart removed
 import '../widgets/glass_card.dart';
 import '../widgets/share_profile_sheet.dart';
 import '../widgets/restricted_access_sheet.dart';
@@ -69,7 +68,6 @@ class _MemberDetailScreenState extends State<MemberDetailScreen> {
         name: '',
         gradient: 'from-purple-400 to-purple-600',
         fitPreference: FitPreference.regular,
-        // No groupIds anymore
       );
       _isEditing = true;
     } else {

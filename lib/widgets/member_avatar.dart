@@ -1,7 +1,8 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import '../models/member.dart';
 import '../theme/app_theme.dart';
+import '../utils/file_image_provider.dart';
 
 class MemberAvatar extends StatelessWidget {
   final Member member;
@@ -21,28 +22,7 @@ class MemberAvatar extends StatelessWidget {
     if (member.avatarType == 'custom' && member.avatarCharacterId != null) {
       return _buildCustomAvatar(context);
     } else if (member.avatarType == 'image' && member.avatarValue.isNotEmpty) {
-      return Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          image: DecorationImage(
-            image: FileImage(File(member.avatarValue)),
-            fit: BoxFit.cover,
-          ),
-          border: showBorder ? Border.all(
-            color: Colors.white.withValues(alpha: 0.4),
-            width: size * 0.04, // Responsive border width
-          ) : null,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.2),
-              blurRadius: size * 0.2,
-              offset: Offset(0, size * 0.1),
-            ),
-          ],
-        ),
-      );
+      return _buildImageAvatar(context);
     } else if (member.avatarType == 'emoji') {
        return Container(
         width: size,
@@ -73,41 +53,75 @@ class MemberAvatar extends StatelessWidget {
       );
     } else {
       // Gradient fallback
-      return Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          gradient: AppTheme.getGradient(member.gradient),
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.getGradient(member.gradient)
-                  .colors
-                  .first
-                  .withValues(alpha: 0.4),
-              blurRadius: size * 0.2,
-              offset: Offset(0, size * 0.1),
-            ),
-          ],
-          border: showBorder ? Border.all(
-            color: Colors.white.withValues(alpha: 0.4),
-            width: size * 0.04,
-          ) : null,
-        ),
-        child: Center(
-          child: Text(
-            member.name.isNotEmpty 
-                ? member.name.substring(0, member.name.length >= 2 ? 2 : member.name.length).toUpperCase() 
-                : '?',
-            style: TextStyle(
-              fontSize: size * 0.35,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+      return _buildGradientAvatar();
+    }
+  }
+
+  Widget _buildGradientAvatar() {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: AppTheme.getGradient(member.gradient),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.getGradient(member.gradient)
+                .colors
+                .first
+                .withValues(alpha: 0.4),
+            blurRadius: size * 0.2,
+            offset: Offset(0, size * 0.1),
+          ),
+        ],
+        border: showBorder ? Border.all(
+          color: Colors.white.withValues(alpha: 0.4),
+          width: size * 0.04,
+        ) : null,
+      ),
+      child: Center(
+        child: Text(
+          member.name.isNotEmpty 
+              ? member.name.substring(0, member.name.length >= 2 ? 2 : member.name.length).toUpperCase() 
+              : '?',
+          style: TextStyle(
+            fontSize: size * 0.35,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-      );
+      ),
+    );
+  }
+
+  Widget _buildImageAvatar(BuildContext context) {
+    // On web, File-based images are not supported; fall back to gradient
+    if (kIsWeb) {
+      return _buildGradientAvatar();
     }
+
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        image: DecorationImage(
+          image: createFileImageProvider(member.avatarValue),
+          fit: BoxFit.cover,
+        ),
+        border: showBorder ? Border.all(
+          color: Colors.white.withValues(alpha: 0.4),
+          width: size * 0.04,
+        ) : null,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.2),
+            blurRadius: size * 0.2,
+            offset: Offset(0, size * 0.1),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildCustomAvatar(BuildContext context) {

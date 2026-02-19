@@ -184,6 +184,23 @@ body {
     overflow: hidden;
 }
 
+.nav-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.nav-actions .btn {
+    padding: 8px 16px;
+    font-size: 0.85rem;
+}
+
+@media (max-width: 768px) {
+    .nav-actions .btn-secondary {
+        display: none;
+    }
+}
+
 /* Hero */
 .hero {
     padding: 80px 0 120px;

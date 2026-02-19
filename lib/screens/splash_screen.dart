@@ -98,7 +98,7 @@ class _SplashScreenState extends State<SplashScreen> {
               child: Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  'Restez connectés',
+                  'Votre cercle, connecté',
                   style: TextStyle(
                     fontSize: 16,
                     color: theme.textTheme.bodyMedium?.color?.withValues(alpha: 0.6),
