@@ -41,7 +41,6 @@ jobs:
 
           # Ensure .nojekyll exists so GitHub Pages serves underscore files
           touch docs/.nojekyll
-          touch docs/app/.nojekyll
 
       - name: Commit and push
         run: |
